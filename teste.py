@@ -1,12 +1,6 @@
-from SQL.sql_fiodameada import SendPulse_Flows
+from SQL.sql_fiodameada import Metodo_Raspagem_Noticias
 
 
-SendPulse_Flows().insert("124", "TESTE", "2023-08-23")
-SendPulse_Flows().delete("124/TESTE")
-instancia = SendPulse_Flows()
+instancia = Metodo_Raspagem_Noticias()
 
-SendPulse_Flows().insert()
-
-resultado = instancia.confirm(ID_FLOW_DB="3")
-
-print(resultado)
+instancia.insert("New_One")
