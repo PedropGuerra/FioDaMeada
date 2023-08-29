@@ -1,21 +1,31 @@
 import mysql.connector
 import time
+from typing import Any
 
 # """
 # - CRUD de todas as tabelas
 # - Principais selects
 # """
 
-DATABASE = "sql10642707"
+MAIN_DATABASE = "sql10642707"
 HOST = "sql10.freesqldatabase.com"
 USER = "sql10642707"
 PASSWORD = "4HGIwWshhf"
 FORMAT_DATA = "%Y-%M-%D"
 
-database = mysql.connector.connect(
-    host=HOST, user=USER, password=PASSWORD, database=DATABASE
-)
-mysql_cursor = database.cursor()
+
+def connect_db() -> None:
+    global database, mysql_cursor
+    database = mysql.connector.connect(
+        host=HOST, user=USER, password=PASSWORD, database=MAIN_DATABASE
+    )
+    mysql_cursor = database.cursor()
+    return database, mysql_cursor
+
+
+def disconnect_db() -> None:
+    mysql_cursor.close()
+    database.close()
 
 
 def executar_comando_sql(sql: str, values=None):
@@ -35,6 +45,23 @@ def executar_comando_sql(sql: str, values=None):
         return result
 
     database.commit()
+
+
+def transformar_valores_em_string(values: list) -> str:
+    """Coloque todos os valores em uma lista ordenada por como será enviado ao DB"""
+    value_string = ""
+
+    for i, value in enumerate(values):
+        if value == None:
+            value = "null"
+
+        value = f"'{value}'"  # todos os valores estão sendo inseridos como string
+        if i != len(values) - 1:
+            value = value + ","
+
+        value_string += value
+
+    return value_string
 
 
 class SendPulse_Flows:
@@ -168,10 +195,10 @@ class Parceiros:
     def insert(
         self,
         Nome_Parceiro: str,
-        Data_Registro_DB: str,
         Link_Parceiro: str,
         ID_Metodo_Coleta: str,
         Tags_HTML_Raspagem: str,
+        Data_Registro_DB: str = time.strftime(FORMAT_DATA),
         Nome_Responsavel: str = None,
         Contato_Responsavel: str = None,
         Licenca_Distrib: str = None,
@@ -180,7 +207,7 @@ class Parceiros:
     ):
         """
         char(15)
-        Formato Data= AAAA-MM-DD (2023-08-23) ou será substituida
+        Formato Data= AAAA-MM-DD (2023-08-23) se vazio será o tempo atual
         ID_Metodo_Coleta = 1/2/3/4/5/n.....
         """
         values = [
@@ -195,46 +222,78 @@ class Parceiros:
             Ult_Raspagem,
             Status,
         ]
+        values = transformar_valores_em_string(values)
+        insert_into = f"INSERT INTO Parceiros VALUES ({values})"
+        executar_comando_sql(insert_into)
 
-        for i, value in enumerate(values):
-            if value == None:
-                values.pop(values.index(value))
-
-            value = f"{value}"
-            if i != value - 1:
-                value = value + ","
-
-        insert_into = f"INSERT INTO Parceiros VALUES ()"
-        # executar_comando_sql(insert_into, values)
-
-    def delete(self, confirmation_string: str):
-        """Escreva = ID_Pref_Usuario/Nome_Preferencia"""
+    def alterar_status(self, confirmation_string: str):
+        """Escreva = ID_Parceiro/Nome_Parceiro/StatusDesejado"""
 
         confirmation_string = confirmation_string.split("/")
 
         if type(confirmation_string) == list and confirmation_string:
-            delete_from = f"DELETE FROM Parceiros WHERE ID_Pref_Usuario = '{confirmation_string[0]}' AND Nome_Preferencia = '{confirmation_string[1]}'"
-            executar_comando_sql(delete_from)
+            update = f"UPDATE Parceiros SET Status = '{confirmation_string[2]}' WHERE ID_Parceiro = '{confirmation_string[0]}' AND Nome_Parceiro = '{confirmation_string[1]}'"
+            executar_comando_sql(update)
 
         else:
             exit()
 
-    def confirm(self, ID_Pref_Usuario: str = None, Nome_Preferencia: str = None):
-        """Informe o ID_Pref_Usuario ou Nome_Preferencia para confirmar"""
-        if ID_Pref_Usuario:
-            select_from = (
-                f"SELECT * FROM Parceiros WHERE ID_Pref_Usuario = '{ID_Pref_Usuario}'"
-            )
+    def confirm(
+        self, ID_Pareiro: str = None, Nome_Parceiro: str = None, Status: int = 1
+    ):
+        """Informe o ID_Pareiro ou Nome_Parceiro para confirmar"""
+        if ID_Pareiro:
+            select_from = f"SELECT * FROM Parceiros WHERE ID_Pareiro = '{ID_Pareiro}' AND Status = '{Status}'"
             return list(executar_comando_sql(select_from))
 
-        elif Nome_Preferencia:
-            select_from = (
-                f"SELECT * FROM Parceiros WHERE Nome_Preferencia = '{Nome_Preferencia}'"
-            )
+        elif Nome_Parceiro:
+            select_from = f"SELECT * FROM Parceiros WHERE Nome_Parceiro = '{Nome_Parceiro}' AND Status = '{Status}'"
             return list(executar_comando_sql(select_from))
 
         else:
             return None
 
-    def update(self):
-        pass
+    def update(
+        self,
+        ID_Parceiro: str,
+        Nome_Parceiro: str = None,
+        Link_Parcerio: str = None,
+        Nome_Responsavel: str = None,
+        Contato_Responsavel: str = None,
+        Licenca_Distrib: str = None,
+        ID_Metodo_Coleta: str = None,
+        Tags_HTML_Raspagem: str = None,
+        Ult_Raspagem: str = None,
+        Status: str = None,
+    ):
+        """
+        1. Gerar uma string para tipo de update ("Nome", "Responsavel", "Contato"....)
+        Formato = "coluna = 'valor'"
+        """
+
+        columns_dict = {
+            "Nome_Parceiro": Nome_Parceiro,
+            "Link_Parcerio": Link_Parcerio,
+            "Nome_Responsavel": Nome_Responsavel,
+            "Contato_Responsavel": Contato_Responsavel,
+            "Licenca_Distrib": Licenca_Distrib,
+            "ID_Metodo_Coleta": ID_Metodo_Coleta,
+            "Tags_HTML_Raspagem": Tags_HTML_Raspagem,
+            "Ult_Raspagem": Ult_Raspagem,
+            "Status": Status,
+        }
+
+        set_string: str = ""
+
+        for column in columns_dict:
+            if columns_dict[column] == None:
+                continue
+
+            value_string = f"{column} = '{columns_dict[column]}' "  # o espaço ao final garante a separação
+            set_string += value_string
+
+        sql_string = (
+            f"UPDATE Parceiros SET {set_string} WHERE ID_Parceiro = {ID_Parceiro}"
+        )
+
+        executar_comando_sql(sql_string)
