@@ -20,6 +20,13 @@ create table Preferencia_Usuarios (
     PRIMARY KEY(ID_Pref_Usuario)
 );
 
+create table Noticias_Preferencias (
+    ID_Pref_Usuario int NOT NULL,
+    ID_Noticia int NOT NULL,
+    FOREIGN KEY (ID_Pref_Usuario) REFERENCES Preferencia_Usuarios(ID_Pref_Usuario),
+    FOREIGN KEY (ID_Noticia) REFERENCES Noticias(ID_Noticia)
+);
+
 create table Parceiros (
     ID_Parceiro int auto_increment NOT NULL,
     Nome_Parceiro varchar(20) NOT NULL,
@@ -40,11 +47,9 @@ create table Noticias (
     ID_Noticia int auto_increment NOT NULL,
     ID_Parceiro int NOT NULL,
     Link_Publicacao varchar(2048) NOT NULL,
-    Data_Publicacao date(0) NOT NULL,
     Headline_Publicacao text NOT NULL,
     Resumo_Publicacao text NOT NULL, /*https://www.turbinetext.com/pt/resumo*/
     Tema_Publicacao char(24) NOT NULL,
-    ID_Pref_Usuario int NOT NULL,
     Data_Publicacao_Parceiro date NOT NULL, /*Data da publicação da notícia no portal do parceiro*/
     Data_Registro_DB date, /*Data de registro no Banco de Dados*/
     FOREIGN KEY (ID_Parceiro) REFERENCES Parceiros(ID_Parceiro),

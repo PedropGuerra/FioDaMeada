@@ -258,11 +258,11 @@ class Parceiros:
             exit()
 
     def confirm(
-        self, ID_Pareiro: str = None, Nome_Parceiro: str = None, Status: int = 1
+        self, ID_Parceiro: str = None, Nome_Parceiro: str = None, Status: int = 1
     ):
-        """Informe o ID_Pareiro ou Nome_Parceiro para confirmar"""
-        if ID_Pareiro:
-            select_from = f"SELECT * FROM Parceiros WHERE ID_Pareiro = '{ID_Pareiro}' AND Status = '{Status}'"
+        """Informe o ID_Parceiro ou Nome_Parceiro para confirmar"""
+        if ID_Parceiro:
+            select_from = f"SELECT * FROM Parceiros WHERE ID_Parceiro = '{ID_Parceiro}' AND Status = '{Status}'"
             return list(executar_comando_sql(select_from))
 
         elif Nome_Parceiro:
@@ -315,24 +315,16 @@ class Noticias:
     def __init__(self) -> None:
         self.nome_tabela = "Noticias"
 
-        self.tipo_noticias: dict = {
-            "1": "Política",
-            "2": "Saúde",
-            "3": "Entretenimento",
-            "4": "Tecnologia",
-            "5": "Mercado de Trabalho",
-            "6": "Segurança Pública",
-        }
+        # adicionar colunas para cada preferencia
+        #
 
     def insert(
         self,
         ID_Parceiro: str,
         Link_Publicacao: str,
-        Data_Publicacao: str,
         Headline_Publicacao: str,
         Resumo_Publicacao: str,
         Tema_Publicacao: str,
-        ID_Pref_Usuario: str,
         Data_Publicacao_Parceiro: str,
         Data_Registro_DB: str = time.strftime(FORMAT_DATA),
     ):
@@ -340,15 +332,14 @@ class Noticias:
         char(15)
         Formato Data= AAAA-MM-DD (2023-08-23) se vazio será o tempo atual
         ID_Pref_Usuario = 1/2/3/4/5/n.....
+        Tema_P
         """
         values = {
             "ID_Parceiro": ID_Parceiro,
             "Link_Publicacao": Link_Publicacao,
-            "Data_Publicacao": Data_Publicacao,
             "Headline_Publicacao": Headline_Publicacao,
             "Resumo_Publicacao": Resumo_Publicacao,
             "Tema_Publicacao": Tema_Publicacao,
-            "ID_Pref_Usuario": ID_Pref_Usuario,
             "Data_Publicacao_Parceiro": Data_Publicacao_Parceiro,
             "Data_Registro_DB": Data_Registro_DB,
         }
@@ -357,32 +348,65 @@ class Noticias:
         insert_into = f"INSERT INTO {self.nome_tabela} VALUES ({value_string})"
         executar_comando_sql(insert_into)
 
-    def alterar_status(self, confirmation_string: str):
-        """Escreva = ID_Parceiro/Nome_Parceiro/StatusDesejado"""
+    def confirm_preferencia(self, ID_Pref_Usuario: str) -> list:
+        """Informe o ID_Parceiro ou Nome_Parceiro para confirmar"""
+        tabela_noticias_preferencia = "Noticias_Preferencias"
 
-        confirmation_string = confirmation_string.split("/")
+        confirm_sql = f"SELECT * FROM {tabela_noticias_preferencia} WHERE ID_Pref_Usuario = {ID_Pref_Usuario}"
+        return executar_comando_sql(confirm_sql)
 
-        if type(confirmation_string) == list and confirmation_string:
-            update = f"UPDATE Parceiros SET Status = '{confirmation_string[2]}' WHERE ID_Parceiro = '{confirmation_string[0]}' AND Nome_Parceiro = '{confirmation_string[1]}'"
-            executar_comando_sql(update)
-
-        else:
-            exit()
-
-    def confirm(
-        self, ID_Pareiro: str = None, Nome_Parceiro: str = None, Status: int = 1
+    def select(
+        self,
+        categorização: str,
+        data_desde: str = None,
+        data_ate: str = None,
+        parceiro_id: str = None,
+        tema: str = None,
+        preferencia_id: str = None,
     ):
-        """Informe o ID_Pareiro ou Nome_Parceiro para confirmar"""
-        if ID_Pareiro:
-            select_from = f"SELECT * FROM Parceiros WHERE ID_Pareiro = '{ID_Pareiro}' AND Status = '{Status}'"
-            return list(executar_comando_sql(select_from))
+        """
+        Categorização = 'data' / 'parceiro' / 'tema' / 'preferencia'
+        Formato Data = YYYY-MM-DD
 
-        elif Nome_Parceiro:
-            select_from = f"SELECT * FROM Parceiros WHERE Nome_Parceiro = '{Nome_Parceiro}' AND Status = '{Status}'"
-            return list(executar_comando_sql(select_from))
+        data_ate -> Se vazio então data atual
+        """
 
-        else:
-            return None
+        match categorização:
+            case "data":
+                if data_desde:
+                    if data_ate == None:
+                        data_ate = time.strftime(FORMAT_DATA)
+
+                    data_desde = f"Data_Publicacao_Parceiro >= '{data_desde}'"
+                    data_ate = f"AND Data_Publicacao_Parceiro <= '{data_ate}'"
+                    select_from = f"SELECT * FROM {self.nome_tabela} Where {data_desde} {data_ate}"
+                    return executar_comando_sql(select_from)
+
+            case "parceiro":
+                if parceiro_id:
+                    parceiro_id = f"ID_Parceiro = '{parceiro_id}'"
+                    select_from = (
+                        f"SELECT * FROM {self.nome_tabela} Where {parceiro_id}"
+                    )
+                    return executar_comando_sql(select_from)
+
+            case "tema":
+                if tema:
+                    tema = f"Tema_Publicacao = '{tema}'"
+                    select_from = f"SELECT * FROM {self.nome_tabela} Where {tema}"
+                    return executar_comando_sql(select_from)
+
+            case "preferencia":
+                if preferencia_id:
+                    tabela_noticia_preferencia = self.confirm_preferencia(
+                        preferencia_id
+                    )
+                    lista_noticias = list()
+
+                    for item in lista_noticias:
+                        lista_noticias.append(item[1])
+
+                    return list(lista_noticias)
 
     def update(
         self,
