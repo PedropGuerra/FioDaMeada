@@ -11,7 +11,9 @@ MAIN_DATABASE = "sql10642707"
 HOST = "sql10.freesqldatabase.com"
 USER = "sql10642707"
 PASSWORD = "4HGIwWshhf"
-FORMAT_DATA = "%Y-%M-%D"
+FORMAT_DATA = "%Y-%m-%d"
+
+time.strftime()
 
 
 def connect_db() -> None:
@@ -357,7 +359,7 @@ class Noticias:
 
     def select(
         self,
-        categorização: str,
+        categorizacao: str,
         data_desde: str = None,
         data_ate: str = None,
         parceiro_id: str = None,
@@ -365,13 +367,13 @@ class Noticias:
         preferencia_id: str = None,
     ):
         """
-        Categorização = 'data' / 'parceiro' / 'tema' / 'preferencia'
+        categorizacao = 'data' / 'parceiro' / 'tema' / 'preferencia'
         Formato Data = YYYY-MM-DD
 
         data_ate -> Se vazio então data atual
         """
 
-        match categorização:
+        match categorizacao:
             case "data":
                 if data_desde:
                     if data_ate == None:
@@ -402,11 +404,21 @@ class Noticias:
                         preferencia_id
                     )
                     lista_noticias = list()
+                    noticias_string = ""
 
-                    for item in tabela_noticia_preferencia:
-                        lista_noticias.append(item[1])
+                    for num_noticia in tabela_noticia_preferencia:
+                        lista_noticias.append(num_noticia[1])
 
-                    return list(lista_noticias)
+                    for i, num_noticia in enumerate(lista_noticias):
+                        noticias_string += f"ID_Noticia = {num_noticia}"
+
+                        if i != len(lista_noticias) - 1:
+                            noticias_string += " AND "
+
+                    select_from = (
+                        f"SELECT * FROM {self.nome_tabela} Where {noticias_string}"
+                    )
+                    return executar_comando_sql(select_from)
 
     def update(
         self,
@@ -432,5 +444,187 @@ class Noticias:
         set_string = transformar_valores_em_string("update", columns_dict)
 
         sql_string = f"UPDATE {self.nome_tabela} SET {set_string} WHERE ID_Noticia = {ID_Noticia}"
+
+        executar_comando_sql(sql_string)
+
+
+class Envios:
+    def __init__(self) -> None:
+        self.nome_tabela = "Envios"
+
+    def insert(
+        self,
+        ID_Envio: str,
+        ID_Pref_Usuario: str,
+        ID_Noticia: str,
+        ID_Flow_DB: str,
+        Data_Envio: str,
+    ):
+        """
+        Formato Data= AAAA-MM-DD (2023-08-23)
+
+        """
+        values = {
+            "ID_Envio": ID_Envio,
+            "ID_Pref_Usuario": ID_Pref_Usuario,
+            "ID_Noticia": ID_Noticia,
+            "ID_Flow_DB": ID_Flow_DB,
+            "Data_Envio": Data_Envio,
+        }
+
+        value_string = transformar_valores_em_string("insert", values)
+        insert_into = f"INSERT INTO {self.nome_tabela} VALUES ({value_string})"
+        executar_comando_sql(insert_into)
+
+
+class Usuarios:
+    def __init__(self) -> None:
+        self.nome_tabela = "Usuarios"
+
+    def insert(
+        self,
+        Primeiro_Nome: str,
+        Ult_Nome: str = None,
+        Data_Registro: str = time.strftime(FORMAT_DATA),
+        DDD: str = None,
+        Telefone_Celular: str = None,
+        Tipo_WhatsApp: str = None,
+        Status: str = "1",
+        Data_Nasc: str = None,
+    ):
+        """ """
+        Data_Ult_Interacao = None
+
+        values = {
+            "Primeiro_Nome": Primeiro_Nome,
+            "Ult_Nome": Ult_Nome,
+            "Data_Registro": Data_Registro,
+            "DDD": DDD,
+            "Telefone_Celular": Telefone_Celular,
+            "Tipo_WhatsApp": Tipo_WhatsApp,
+            "Data_Ult_Interacao": Data_Ult_Interacao,
+            "Status": Status,
+            "Data_Nasc": Data_Nasc,
+        }
+
+        value_string = transformar_valores_em_string("insert", values)
+        insert_into = f"INSERT INTO {self.nome_tabela} VALUES ({value_string})"
+        executar_comando_sql(insert_into)
+
+    def confirm_status(self, ID_Usuario: str):
+        """Informe o ID_Usuario para confirmar o status"""
+
+        confirm_sql = (
+            f"SELECT * FROM {self.nome_tabela} WHERE ID_Usuario = {ID_Usuario}"
+        )
+        return executar_comando_sql(confirm_sql)[-2]
+
+    def select(
+        self,
+        categorizacao=str,
+        ID_Usuario: str = None,
+        Data_Registro_desde: str = None,
+        Data_Registro_ate: str = None,
+        DDD: str = None,
+        Telefone_Celular: str = None,
+        Tipo_WhatsApp: str = None,
+        Status: str = None,
+        Data_Nasc: str = None,
+        Data_Ult_Interacao: str = None,
+    ):
+        """
+        Categorização = 'ID', 'Data', 'DDD', 'Telefone', 'Tipo_WhatsApp', 'Status', 'Nasc', 'Ult_Interacao'
+        """
+
+        match categorizacao:
+            case "data":
+                if Data_Registro_desde:
+                    if Data_Registro_ate == None:
+                        Data_Registro_ate = time.strftime(FORMAT_DATA)
+
+                    Data_Registro_desde = f"Data_Registro >= '{Data_Registro_desde}'"
+                    Data_Registro_ate = f"AND Data_Registro <= '{Data_Registro_ate}'"
+                    select_from = f"SELECT * FROM {self.nome_tabela} Where {Data_Registro_desde} {Data_Registro_ate}"
+                    return executar_comando_sql(select_from)
+
+            case "ID":
+                if ID_Usuario:
+                    ID_Usuario = f"ID_Usuario = '{ID_Usuario}'"
+                    select_from = f"SELECT * FROM {self.nome_tabela} Where {ID_Usuario}"
+                    return executar_comando_sql(select_from)
+
+            case "DDD":
+                if DDD:
+                    DDD = f"DDD = '{DDD}'"
+                    select_from = f"SELECT * FROM {self.nome_tabela} Where {DDD}"
+                    return executar_comando_sql(select_from)
+
+            case "Telefone":
+                if Telefone_Celular:
+                    Telefone_Celular = f"Telefone_Celular = '{Telefone_Celular}'"
+                    select_from = (
+                        f"SELECT * FROM {self.nome_tabela} Where {Telefone_Celular}"
+                    )
+                    return executar_comando_sql(select_from)
+
+            case "Tipo_WhatsApp":
+                if Tipo_WhatsApp:
+                    Tipo_WhatsApp = f"Tipo_WhatsApp = '{Tipo_WhatsApp}'"
+                    select_from = (
+                        f"SELECT * FROM {self.nome_tabela} Where {Tipo_WhatsApp}"
+                    )
+                    return executar_comando_sql(select_from)
+
+            case "Status":
+                if Status:
+                    Status = f"Status = '{Status}'"
+                    select_from = f"SELECT * FROM {self.nome_tabela} Where {Status}"
+                    return executar_comando_sql(select_from)
+
+            case "Nasc":
+                if Data_Nasc:
+                    Data_Nasc = f"Data_Nasc = '{Data_Nasc}'"
+                    select_from = f"SELECT * FROM {self.nome_tabela} Where {Data_Nasc}"
+                    return executar_comando_sql(select_from)
+
+            case "Ult_Interacao":
+                if Data_Ult_Interacao:
+                    Data_Ult_Interacao = f"Data_Ult_Interacao = '{Data_Ult_Interacao}'"
+                    select_from = (
+                        f"SELECT * FROM {self.nome_tabela} Where {Data_Ult_Interacao}"
+                    )
+                    return executar_comando_sql(select_from)
+
+    def update(
+        self,
+        ID_Usuario: str,
+        Primeiro_Nome: str = None,
+        Ult_Nome: str = None,
+        Data_Registro: str = None,
+        DDD: str = None,
+        Telefone_Celular: str = None,
+        Tipo_WhatsApp: str = None,
+        Data_Ult_Interacao: str = None,
+        Status: str = "1",
+        Data_Nasc: str = None,
+    ):
+        """ """
+
+        columns_dict = {
+            "ID_Usuario": ID_Usuario,
+            "Primeiro_Nome": Primeiro_Nome,
+            "Ult_Nome": Ult_Nome,
+            "Data_Registro": Data_Registro,
+            "DDD": DDD,
+            "Telefone_Celular": Telefone_Celular,
+            "Tipo_WhatsApp": Tipo_WhatsApp,
+            "Data_Ult_Interacao": Data_Ult_Interacao,
+            "Status": Status,
+            "Data_Nasc": Data_Nasc,
+        }
+
+        set_string = transformar_valores_em_string("update", columns_dict)
+
+        sql_string = f"UPDATE {self.nome_tabela} SET {set_string} WHERE ID_Usuario = {ID_Usuario}"
 
         executar_comando_sql(sql_string)

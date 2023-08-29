@@ -27,6 +27,14 @@ create table Noticias_Preferencias (
     FOREIGN KEY (ID_Noticia) REFERENCES Noticias(ID_Noticia)
 );
 
+
+create table Usuarios_Preferencias (
+    ID_Usuario int NOT NULL,
+    ID_Pref_Usuario int NOT NULL,
+    FOREIGN KEY (ID_Usuario) REFERENCES Usuarios(ID_Usuario)
+    FOREIGN KEY (ID_Pref_Usuario) REFERENCES Preferencia_Usuarios(ID_Pref_Usuario)
+    );
+
 create table Parceiros (
     ID_Parceiro int auto_increment NOT NULL,
     Nome_Parceiro varchar(20) NOT NULL,
@@ -60,16 +68,17 @@ create table Noticias (
 
 create table Envios (
     ID_Transacao_Envio int auto_increment NOT NULL,
-    ID_Envio int NOT NULL,
+    ID_Envio int NOT NULL, --Programa precisa criar a sequencia manualmente
     ID_Pref_Usuario int NOT NULL,
     ID_Noticia int NOT NULL,
     ID_Flow_DB int NOT NULL,
-    Data_Envio datetime NOT NULL,
+    Data_Envio date NOT NULL,
     FOREIGN KEY (ID_Noticia) REFERENCES Noticias(ID_Noticia),
     FOREIGN KEY (ID_Pref_Usuario) REFERENCES Preferencia_Usuarios(ID_Pref_Usuario),
     FOREIGN KEY (ID_Flow_DB) REFERENCES SendPulse_Flows(ID_Flow_DB),
     PRIMARY KEY (ID_Transacao_Envio)
 );
+
 
 create table Usuarios (
     ID_Usuario int auto_increment NOT NULL,
@@ -79,14 +88,8 @@ create table Usuarios (
     DDD char(3),
     Telefone_Celular varchar(12),
     Tipo_WhatsApp boolean, /*Business ou Pessoal*/
-    Data_Ult_Interacao datetime,
+    Data_Ult_Interacao date,
     Status char(1), /*Ativo/Inativo/Unsubscribed/BlockedByUser*/
     Data_Nasc date, /*Formato DD/MM/AAAA*/
-    Pref_Usuario1 int NOT NULL,
-    Pref_Usuario2 int NOT NULL,
-    Pref_Usuario3 int NOT NULL,
-    FOREIGN KEY (Pref_Usuario1) REFERENCES Preferencia_Usuarios(ID_Pref_Usuario),
-    FOREIGN KEY (Pref_Usuario2) REFERENCES Preferencia_Usuarios(ID_Pref_Usuario),
-    FOREIGN KEY (Pref_Usuario3) REFERENCES Preferencia_Usuarios(ID_Pref_Usuario),
     PRIMARY KEY (ID_Usuario)
 );
