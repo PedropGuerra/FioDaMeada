@@ -47,21 +47,39 @@ def executar_comando_sql(sql: str, values=None):
     database.commit()
 
 
-def transformar_valores_em_string(values: list) -> str:
-    """Coloque todos os valores em uma lista ordenada por como será enviado ao DB"""
+def transformar_valores_em_string(type: str, values: dict) -> str:
+    """Coloque todos os valores em uma lista ordenada por como será enviado ao DB
+    type = "insert"/"update"
+    """
     value_string = ""
 
-    for i, value in enumerate(values):
-        if value == None:
-            value = "null"
+    match type:
+        case "insert":
+            for count, index in enumerate(values):
+                if values[index] == None:
+                    values[index] = "null"
 
-        value = f"'{value}'"  # todos os valores estão sendo inseridos como string
-        if i != len(values) - 1:
-            value = value + ","
+                values[
+                    index
+                ] = f"'{values[index]}'"  # todos os valores estão sendo inseridos como string
+                if count != len(values) - 1:
+                    values[index] = values[index] + ","
 
-        value_string += value
+                value_string += values[index]
 
-    return value_string
+            return value_string
+
+        case "update":
+            set_string: str = ""
+
+            for index in values:
+                if values[index] == None:
+                    continue
+
+                value_string = f"{index} = '{values[index]}' "  # o espaço ao final garante a separação
+                set_string += value_string
+
+            return set_string
 
 
 class SendPulse_Flows:
@@ -210,20 +228,21 @@ class Parceiros:
         Formato Data= AAAA-MM-DD (2023-08-23) se vazio será o tempo atual
         ID_Metodo_Coleta = 1/2/3/4/5/n.....
         """
-        values = [
-            Nome_Parceiro,
-            Data_Registro_DB,
-            Link_Parceiro,
-            Nome_Responsavel,
-            Contato_Responsavel,
-            Licenca_Distrib,
-            ID_Metodo_Coleta,
-            Tags_HTML_Raspagem,
-            Ult_Raspagem,
-            Status,
-        ]
-        values = transformar_valores_em_string(values)
-        insert_into = f"INSERT INTO Parceiros VALUES ({values})"
+        values = {
+            "Nome_Parceiro": Nome_Parceiro,
+            "Data_Registro_DB": Data_Registro_DB,
+            "Link_Parceiro": Link_Parceiro,
+            "Nome_Responsavel": Nome_Responsavel,
+            "Contato_Responsavel": Contato_Responsavel,
+            "Licenca_Distrib": Licenca_Distrib,
+            "ID_Metodo_Coleta": ID_Metodo_Coleta,
+            "Tags_HTML_Raspagem": Tags_HTML_Raspagem,
+            "Ult_Raspagem": Ult_Raspagem,
+            "Status": Status,
+        }
+
+        value_string = transformar_valores_em_string("insert", values)
+        insert_into = f"INSERT INTO Parceiros VALUES ({value_string})"
         executar_comando_sql(insert_into)
 
     def alterar_status(self, confirmation_string: str):
@@ -283,14 +302,119 @@ class Parceiros:
             "Status": Status,
         }
 
-        set_string: str = ""
+        set_string = transformar_valores_em_string("update", columns_dict)
 
-        for column in columns_dict:
-            if columns_dict[column] == None:
-                continue
+        sql_string = (
+            f"UPDATE Parceiros SET {set_string} WHERE ID_Parceiro = {ID_Parceiro}"
+        )
 
-            value_string = f"{column} = '{columns_dict[column]}' "  # o espaço ao final garante a separação
-            set_string += value_string
+        executar_comando_sql(sql_string)
+
+
+class Noticias:
+    def __init__(self) -> None:
+        self.nome_tabela = "Noticias"
+
+        self.tipo_noticias: dict = {
+            "1": "Política",
+            "2": "Saúde",
+            "3": "Entretenimento",
+            "4": "Tecnologia",
+            "5": "Mercado de Trabalho",
+            "6": "Segurança Pública",
+        }
+
+    def insert(
+        self,
+        ID_Parceiro: str,
+        Link_Publicacao: str,
+        Data_Publicacao: str,
+        Headline_Publicacao: str,
+        Resumo_Publicacao: str,
+        Tema_Publicacao: str,
+        ID_Pref_Usuario: str,
+        Data_Publicacao_Parceiro: str,
+        Data_Registro_DB: str = time.strftime(FORMAT_DATA),
+    ):
+        """
+        char(15)
+        Formato Data= AAAA-MM-DD (2023-08-23) se vazio será o tempo atual
+        ID_Pref_Usuario = 1/2/3/4/5/n.....
+        """
+        values = {
+            "ID_Parceiro": ID_Parceiro,
+            "Link_Publicacao": Link_Publicacao,
+            "Data_Publicacao": Data_Publicacao,
+            "Headline_Publicacao": Headline_Publicacao,
+            "Resumo_Publicacao": Resumo_Publicacao,
+            "Tema_Publicacao": Tema_Publicacao,
+            "ID_Pref_Usuario": ID_Pref_Usuario,
+            "Data_Publicacao_Parceiro": Data_Publicacao_Parceiro,
+            "Data_Registro_DB": Data_Registro_DB,
+        }
+
+        value_string = transformar_valores_em_string("insert", values)
+        insert_into = f"INSERT INTO {self.nome_tabela} VALUES ({value_string})"
+        executar_comando_sql(insert_into)
+
+    def alterar_status(self, confirmation_string: str):
+        """Escreva = ID_Parceiro/Nome_Parceiro/StatusDesejado"""
+
+        confirmation_string = confirmation_string.split("/")
+
+        if type(confirmation_string) == list and confirmation_string:
+            update = f"UPDATE Parceiros SET Status = '{confirmation_string[2]}' WHERE ID_Parceiro = '{confirmation_string[0]}' AND Nome_Parceiro = '{confirmation_string[1]}'"
+            executar_comando_sql(update)
+
+        else:
+            exit()
+
+    def confirm(
+        self, ID_Pareiro: str = None, Nome_Parceiro: str = None, Status: int = 1
+    ):
+        """Informe o ID_Pareiro ou Nome_Parceiro para confirmar"""
+        if ID_Pareiro:
+            select_from = f"SELECT * FROM Parceiros WHERE ID_Pareiro = '{ID_Pareiro}' AND Status = '{Status}'"
+            return list(executar_comando_sql(select_from))
+
+        elif Nome_Parceiro:
+            select_from = f"SELECT * FROM Parceiros WHERE Nome_Parceiro = '{Nome_Parceiro}' AND Status = '{Status}'"
+            return list(executar_comando_sql(select_from))
+
+        else:
+            return None
+
+    def update(
+        self,
+        ID_Parceiro: str,
+        Nome_Parceiro: str = None,
+        Link_Parcerio: str = None,
+        Nome_Responsavel: str = None,
+        Contato_Responsavel: str = None,
+        Licenca_Distrib: str = None,
+        ID_Metodo_Coleta: str = None,
+        Tags_HTML_Raspagem: str = None,
+        Ult_Raspagem: str = None,
+        Status: str = None,
+    ):
+        """
+        1. Gerar uma string para tipo de update ("Nome", "Responsavel", "Contato"....)
+        Formato = "coluna = 'valor'"
+        """
+
+        columns_dict = {
+            "Nome_Parceiro": Nome_Parceiro,
+            "Link_Parcerio": Link_Parcerio,
+            "Nome_Responsavel": Nome_Responsavel,
+            "Contato_Responsavel": Contato_Responsavel,
+            "Licenca_Distrib": Licenca_Distrib,
+            "ID_Metodo_Coleta": ID_Metodo_Coleta,
+            "Tags_HTML_Raspagem": Tags_HTML_Raspagem,
+            "Ult_Raspagem": Ult_Raspagem,
+            "Status": Status,
+        }
+
+        set_string = transformar_valores_em_string("update", columns_dict)
 
         sql_string = (
             f"UPDATE Parceiros SET {set_string} WHERE ID_Parceiro = {ID_Parceiro}"
