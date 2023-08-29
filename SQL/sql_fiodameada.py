@@ -403,45 +403,34 @@ class Noticias:
                     )
                     lista_noticias = list()
 
-                    for item in lista_noticias:
+                    for item in tabela_noticia_preferencia:
                         lista_noticias.append(item[1])
 
                     return list(lista_noticias)
 
     def update(
         self,
-        ID_Parceiro: str,
-        Nome_Parceiro: str = None,
-        Link_Parcerio: str = None,
-        Nome_Responsavel: str = None,
-        Contato_Responsavel: str = None,
-        Licenca_Distrib: str = None,
-        ID_Metodo_Coleta: str = None,
-        Tags_HTML_Raspagem: str = None,
-        Ult_Raspagem: str = None,
-        Status: str = None,
+        ID_Noticia: str,
+        ID_Parceiro: str = None,
+        Link_Publicacao: str = None,
+        Headline_Publicacao: str = None,
+        Resumo_Publicacao: str = None,
+        Tema_Publicacao: str = None,
+        Data_Publicacao_Parceiro: str = None,
     ):
-        """
-        1. Gerar uma string para tipo de update ("Nome", "Responsavel", "Contato"....)
-        Formato = "coluna = 'valor'"
-        """
+        """ """
 
         columns_dict = {
-            "Nome_Parceiro": Nome_Parceiro,
-            "Link_Parcerio": Link_Parcerio,
-            "Nome_Responsavel": Nome_Responsavel,
-            "Contato_Responsavel": Contato_Responsavel,
-            "Licenca_Distrib": Licenca_Distrib,
-            "ID_Metodo_Coleta": ID_Metodo_Coleta,
-            "Tags_HTML_Raspagem": Tags_HTML_Raspagem,
-            "Ult_Raspagem": Ult_Raspagem,
-            "Status": Status,
+            "ID_Parceiro": ID_Parceiro,
+            "Link_Publicacao": Link_Publicacao,
+            "Headline_Publicacao": Headline_Publicacao,
+            "Resumo_Publicacao": Resumo_Publicacao,
+            "Tema_Publicacao": Tema_Publicacao,
+            "Data_Publicacao_Parceiro": Data_Publicacao_Parceiro,
         }
 
         set_string = transformar_valores_em_string("update", columns_dict)
 
-        sql_string = (
-            f"UPDATE Parceiros SET {set_string} WHERE ID_Parceiro = {ID_Parceiro}"
-        )
+        sql_string = f"UPDATE {self.nome_tabela} SET {set_string} WHERE ID_Noticia = {ID_Noticia}"
 
         executar_comando_sql(sql_string)
