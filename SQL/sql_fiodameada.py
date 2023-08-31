@@ -1,6 +1,10 @@
+"""
+dadadas"""
+
 import mysql.connector
 import time
 from typing import Any
+import math
 
 # """
 # - CRUD de todas as tabelas
@@ -13,10 +17,9 @@ USER = "sql10642707"
 PASSWORD = "4HGIwWshhf"
 FORMAT_DATA = "%Y-%m-%d"
 
-time.strftime()
-
 
 def connect_db() -> None:
+    """a"""
     global database, mysql_cursor
     database = mysql.connector.connect(
         host=HOST, user=USER, password=PASSWORD, database=MAIN_DATABASE
@@ -26,15 +29,17 @@ def connect_db() -> None:
 
 
 def disconnect_db() -> None:
+    """a"""
     mysql_cursor.close()
     database.close()
 
 
 def executar_comando_sql(sql: str, values=None):
-    if values == None:
+    """a"""
+    if values is None:
         mysql_cursor.execute(sql)
 
-    elif values != None:
+    elif values is not None:
         mysql_cursor.execute(sql, values)
 
     else:
@@ -49,16 +54,16 @@ def executar_comando_sql(sql: str, values=None):
     database.commit()
 
 
-def transformar_valores_em_string(type: str, values: dict) -> str:
+def transformar_valores_em_string(tipo: str, values: dict) -> str:
     """Coloque todos os valores em uma lista ordenada por como será enviado ao DB
-    type = "insert"/"update"
+    tipo = "insert"/"update"
     """
     value_string = ""
 
-    match type:
+    match tipo:
         case "insert":
             for count, index in enumerate(values):
-                if values[index] == None:
+                if values[index] is not None:
                     values[index] = "null"
 
                 values[
@@ -75,16 +80,18 @@ def transformar_valores_em_string(type: str, values: dict) -> str:
             set_string: str = ""
 
             for index in values:
-                if values[index] == None:
+                if values[index] is None:
                     continue
 
-                value_string = f"{index} = '{values[index]}' "  # o espaço ao final garante a separação
+                value_string = f"{index} = '{values[index]}' "  # manter espaço
                 set_string += value_string
 
             return set_string
 
 
 class SendPulse_Flows:
+    """a"""
+
     def __init__(self) -> None:
         pass
 
@@ -376,7 +383,7 @@ class Noticias:
         match categorizacao:
             case "data":
                 if data_desde:
-                    if data_ate == None:
+                    if data_ate is None:
                         data_ate = time.strftime(FORMAT_DATA)
 
                     data_desde = f"Data_Publicacao_Parceiro >= '{data_desde}'"
@@ -539,7 +546,7 @@ class Usuarios:
         match categorizacao:
             case "data":
                 if Data_Registro_desde:
-                    if Data_Registro_ate == None:
+                    if Data_Registro_ate is None:
                         Data_Registro_ate = time.strftime(FORMAT_DATA)
 
                     Data_Registro_desde = f"Data_Registro >= '{Data_Registro_desde}'"
