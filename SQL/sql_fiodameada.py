@@ -3,8 +3,6 @@ dadadas"""
 
 import mysql.connector
 import time
-from typing import Any
-import math
 
 # """
 # - CRUD de todas as tabelas
@@ -217,7 +215,7 @@ class Preferencia_Usuarios:
 
 class Parceiros:
     def __init__(self) -> None:
-        pass
+        self.nome_tabela = "Parceiros"
 
     def insert(
         self,
@@ -318,6 +316,73 @@ class Parceiros:
         )
 
         executar_comando_sql(sql_string)
+
+    def select(
+        self,
+        categorizacao: str,
+        status: str = 1,
+        ult_raspagem_desde: str = None,
+        ult_raspagem_ate: str = None,
+    ):
+        """
+        categorizacao = todos / status / ult_raspagem / script
+        """
+
+        match categorizacao:
+            case "todos":
+                select_from = f"SELECT * FROM {self.nome_tabela}"
+
+            case "status":
+                if status:
+                    status = f"Status = '{status}'"
+                    select_from = f"SELECT * FROM {self.nome_tabela} WHERE {status}"
+
+            case "ult_raspagem":
+                if ult_raspagem_desde:
+                    if ult_raspagem_ate is None:
+                        ult_raspagem_ate = time.strftime(FORMAT_DATA)
+
+                    ult_raspagem_desde = f"Ult_Raspagem >= '{ult_raspagem_desde}'"
+                    ult_raspagem_ate = f"AND Ult_Raspagem <= '{ult_raspagem_ate}'"
+
+                    select_from = f"SELECT * FROM {self.nome_tabela} WHERE {ult_raspagem_desde} {ult_raspagem_ate}"
+
+            case "script":
+                tabelas_script = (
+                    "ID_Parceiro, ID_Metodo_Coleta, Tags_HTML_Raspagem, Link_Parceiro"
+                )
+                where_script = f"Ult_Raspagem < '{time.strftime(FORMAT_DATA)}'"
+                select_from = f"SELECT {tabelas_script} FROM {self.nome_tabela} WHERE {where_script}"
+
+        return executar_comando_sql(select_from)
+
+    def confirm_tags(self, parse):
+        import feedparser
+
+        tags_entries = [
+            "entries",
+            "content",
+            "license",
+            "link",
+            "links",
+            "published",
+            "publisher",
+            "source",
+            "summary",
+            "tags",
+            "title",
+            "updated",
+        ]
+
+        for tag in tags_entries:
+            try:
+                v_test = getattr(parse, tag)
+
+            except:
+                print(f"A tag {tag} foi removida")
+                tags_entries.remove(tag)
+
+        return tags_entries
 
 
 class Noticias:

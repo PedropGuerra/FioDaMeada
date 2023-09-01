@@ -61,7 +61,6 @@ create table Noticias (
     Data_Publicacao_Parceiro date NOT NULL, /*Data da publicação da notícia no portal do parceiro*/
     Data_Registro_DB date, /*Data de registro no Banco de Dados*/
     FOREIGN KEY (ID_Parceiro) REFERENCES Parceiros(ID_Parceiro),
-    FOREIGN KEY (ID_Pref_Usuario) REFERENCES Preferencia_Usuarios(ID_Pref_Usuario),
     PRIMARY KEY(ID_Noticia)
 );
 
