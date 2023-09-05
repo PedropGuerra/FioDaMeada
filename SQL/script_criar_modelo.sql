@@ -1,4 +1,4 @@
-USE sql10642707; /*Ambiente de Produção: Mudar para "Fio da Meada"*/
+USE fiodameada;
 
 create table SendPulse_Flows (
     ID_Flow_DB int auto_increment NOT NULL,
@@ -20,21 +20,6 @@ create table Preferencia_Usuarios (
     PRIMARY KEY(ID_Pref_Usuario)
 );
 
-create table Noticias_Preferencias (
-    ID_Pref_Usuario int NOT NULL,
-    ID_Noticia int NOT NULL,
-    FOREIGN KEY (ID_Pref_Usuario) REFERENCES Preferencia_Usuarios(ID_Pref_Usuario),
-    FOREIGN KEY (ID_Noticia) REFERENCES Noticias(ID_Noticia)
-);
-
-
-create table Usuarios_Preferencias (
-    ID_Usuario int NOT NULL,
-    ID_Pref_Usuario int NOT NULL,
-    FOREIGN KEY (ID_Usuario) REFERENCES Usuarios(ID_Usuario)
-    FOREIGN KEY (ID_Pref_Usuario) REFERENCES Preferencia_Usuarios(ID_Pref_Usuario)
-    );
-
 create table Parceiros (
     ID_Parceiro int auto_increment NOT NULL,
     Nome_Parceiro varchar(20) NOT NULL,
@@ -43,7 +28,7 @@ create table Parceiros (
     Nome_Responsavel char(24),
     Contato_Responsavel varchar(13),
     Licenca_Distrib varchar(15),
-    ID_Metodo_Coleta tinyint(1) NOT NULL, /*1: Raspagem, 2:Feed RSS, 3:Manual*/
+    ID_Metodo_Coleta int NOT NULL, /*1: Raspagem, 2:Feed RSS, 3:Manual*/
     Tags_HTML_Raspagem varchar(2048) NOT NULL, /*Headline:tag,Texto_Principal:tag...*/
     Ult_Raspagem date,
     Status boolean,
@@ -64,10 +49,16 @@ create table Noticias (
     PRIMARY KEY(ID_Noticia)
 );
 
+create table Noticias_Preferencias (
+    ID_Pref_Usuario int NOT NULL,
+    ID_Noticia int NOT NULL,
+    FOREIGN KEY (ID_Pref_Usuario) REFERENCES Preferencia_Usuarios(ID_Pref_Usuario),
+    FOREIGN KEY (ID_Noticia) REFERENCES Noticias(ID_Noticia)
+);
 
 create table Envios (
     ID_Transacao_Envio int auto_increment NOT NULL,
-    ID_Envio int NOT NULL, --Programa precisa criar a sequencia manualmente
+    ID_Envio int NOT NULL, /*Programa precisa criar a sequencia manualmente*/
     ID_Pref_Usuario int NOT NULL,
     ID_Noticia int NOT NULL,
     ID_Flow_DB int NOT NULL,
@@ -92,3 +83,10 @@ create table Usuarios (
     Data_Nasc date, /*Formato DD/MM/AAAA*/
     PRIMARY KEY (ID_Usuario)
 );
+
+create table Usuarios_Preferencias (
+    ID_Usuario int NOT NULL,
+    ID_Pref_Usuario int NOT NULL,
+    FOREIGN KEY (ID_Usuario) REFERENCES Usuarios(ID_Usuario),
+    FOREIGN KEY (ID_Pref_Usuario) REFERENCES Preferencia_Usuarios(ID_Pref_Usuario)
+    );

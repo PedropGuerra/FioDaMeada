@@ -1,13 +1,12 @@
 INFORMAÇÕES DE ACESSO AO SERVIDOR BANCO DE DADOS
-Acesse: https://www.phpmyadmin.co/
+Host: aws.connect.psdb.cloud
 
-Host: sql10.freesqldatabase.com
+Database name: fiodameada
 
-Database name: sql10642707
+Database user: bngj6cb3268am6u4blk4
 
-Database user: sql10642707
+Database password: 
 
-Database password: 4HGIwWshhf
 
 Port number: 3306
 
