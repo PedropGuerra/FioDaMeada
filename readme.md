@@ -1,12 +1,12 @@
 INFORMAÇÕES DE ACESSO AO SERVIDOR BANCO DE DADOS
-Host: aws.connect.psdb.cloud
+
+Host: 34.134.108.235
 
 Database name: fiodameada
 
-Database user: bngj6cb3268am6u4blk4
+Database user: pedro
 
-Database password: 
-
+Database password: 959538698gbP@
 
 Port number: 3306
 

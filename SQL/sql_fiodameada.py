@@ -3,25 +3,31 @@ dadadas"""
 
 import mysql.connector
 import time
+import json
 
 # """
 # - CRUD de todas as tabelas
 # - Principais selects
 # """
 
-MAIN_DATABASE = "sql10642707"
-HOST = "sql10.freesqldatabase.com"
-USER = "sql10642707"
-PASSWORD = "4HGIwWshhf"
+MAIN_DATABASE = "fiodameada"
+HOST = "34.134.108.235"
+USER = "pedro"
+PASSWORD = "959538698gbP@"
 FORMAT_DATA = "%Y-%m-%d"
 
 
-def connect_db() -> None:
+def connect_db(user: str = None, password: str = None) -> None:
     """a"""
     global database, mysql_cursor
+    if user == None or password == None:
+        user = USER
+        password = PASSWORD
+
     database = mysql.connector.connect(
-        host=HOST, user=USER, password=PASSWORD, database=MAIN_DATABASE
+        host=HOST, user=user, password=password, database=MAIN_DATABASE
     )
+
     mysql_cursor = database.cursor()
     return database, mysql_cursor
 
@@ -56,17 +62,18 @@ def transformar_valores_em_string(tipo: str, values: dict) -> str:
     """Coloque todos os valores em uma lista ordenada por como será enviado ao DB
     tipo = "insert"/"update"
     """
-    value_string = ""
+    value_string = "null, "  # representa os IDs
 
     match tipo:
         case "insert":
             for count, index in enumerate(values):
-                if values[index] is not None:
+                if values[index] is None or values[index] == "":
                     values[index] = "null"
 
-                values[
-                    index
-                ] = f"'{values[index]}'"  # todos os valores estão sendo inseridos como string
+                values[index] = (
+                    f"'{values[index]}'" if values[index] != "null" else "null"
+                )
+
                 if count != len(values) - 1:
                     values[index] = values[index] + ","
 
@@ -85,6 +92,10 @@ def transformar_valores_em_string(tipo: str, values: dict) -> str:
                 set_string += value_string
 
             return set_string
+
+
+def list_to_json(objeto) -> str:
+    return json.dumps(objeto)
 
 
 class SendPulse_Flows:
@@ -222,7 +233,7 @@ class Parceiros:
         Nome_Parceiro: str,
         Link_Parceiro: str,
         ID_Metodo_Coleta: str,
-        Tags_HTML_Raspagem: str,
+        Tags_HTML_Raspagem: str = None,
         Data_Registro_DB: str = time.strftime(FORMAT_DATA),
         Nome_Responsavel: str = None,
         Contato_Responsavel: str = None,
@@ -250,6 +261,7 @@ class Parceiros:
 
         value_string = transformar_valores_em_string("insert", values)
         insert_into = f"INSERT INTO Parceiros VALUES ({value_string})"
+        print(insert_into)
         executar_comando_sql(insert_into)
 
     def alterar_status(self, confirmation_string: str):
@@ -269,12 +281,12 @@ class Parceiros:
     ):
         """Informe o ID_Parceiro ou Nome_Parceiro para confirmar"""
         if ID_Parceiro:
-            select_from = f"SELECT * FROM Parceiros WHERE ID_Parceiro = '{ID_Parceiro}' AND Status = '{Status}'"
-            return list(executar_comando_sql(select_from))
+            select_from = f"SELECT Nome_Parceiro FROM Parceiros WHERE ID_Parceiro = '{ID_Parceiro}' AND Status = '{Status}'"
+            return executar_comando_sql(select_from)
 
         elif Nome_Parceiro:
-            select_from = f"SELECT * FROM Parceiros WHERE Nome_Parceiro = '{Nome_Parceiro}' AND Status = '{Status}'"
-            return list(executar_comando_sql(select_from))
+            select_from = f"SELECT ID_Parceiro FROM Parceiros WHERE Nome_Parceiro = '{Nome_Parceiro}' AND Status = '{Status}'"
+            return executar_comando_sql(select_from)
 
         else:
             return None
@@ -360,14 +372,11 @@ class Parceiros:
         import feedparser
 
         tags_entries = [
-            "entries",
             "content",
-            "license",
             "link",
             "links",
             "published",
             "publisher",
-            "source",
             "summary",
             "tags",
             "title",
@@ -375,11 +384,11 @@ class Parceiros:
         ]
 
         for tag in tags_entries:
+            print("\n")
             try:
-                v_test = getattr(parse, tag)
+                v_test = getattr(parse.entries[0], tag)
 
             except:
-                print(f"A tag {tag} foi removida")
                 tags_entries.remove(tag)
 
         return tags_entries

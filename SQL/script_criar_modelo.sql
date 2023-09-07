@@ -88,5 +88,27 @@ create table Usuarios_Preferencias (
     ID_Usuario int NOT NULL,
     ID_Pref_Usuario int NOT NULL,
     FOREIGN KEY (ID_Usuario) REFERENCES Usuarios(ID_Usuario),
-    FOREIGN KEY (ID_Pref_Usuario) REFERENCES Preferencia_Usuarios(ID_Pref_Usuario)
-    );
+    FOREIGN KEY (ID_Pref_Usuario) REFERENCES Preferencia_Usuarios(ID_Pref_Usuario));
+
+INSERT INTO Metodo_Raspagem_Noticias VALUES (
+    null,
+    "Feed_RSS");
+
+INSERT INTO Metodo_Raspagem_Noticias VALUES (
+    null,
+    "Raspagem");
+
+INSERT INTO Metodo_Raspagem_Noticias VALUES (
+    null,
+    "Manual");
+
+INSERT INTO Preferencia_Usuarios VALUES (
+    null,
+    "Política"
+);
+
+INSERT INTO Preferencia_Usuarios VALUES (
+    null,
+    "Saúde"
+);
+
