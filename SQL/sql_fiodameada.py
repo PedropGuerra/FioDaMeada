@@ -62,7 +62,7 @@ def transformar_valores_em_string(tipo: str, values: dict) -> str:
     """Coloque todos os valores em uma lista ordenada por como será enviado ao DB
     tipo = "insert"/"update"
     """
-    value_string = "null, "  # representa os IDs
+    value_string = ""
 
     match tipo:
         case "insert":
@@ -94,8 +94,12 @@ def transformar_valores_em_string(tipo: str, values: dict) -> str:
             return set_string
 
 
-def list_to_json(objeto) -> str:
+def dict_to_json(objeto: dict) -> str:
     return json.dumps(objeto)
+
+
+def json_to_dict(objeto: str) -> dict:
+    return json.loads(objeto)
 
 
 class SendPulse_Flows:
@@ -261,7 +265,6 @@ class Parceiros:
 
         value_string = transformar_valores_em_string("insert", values)
         insert_into = f"INSERT INTO Parceiros VALUES ({value_string})"
-        print(insert_into)
         executar_comando_sql(insert_into)
 
     def alterar_status(self, confirmation_string: str):
@@ -329,6 +332,10 @@ class Parceiros:
 
         executar_comando_sql(sql_string)
 
+    def update_ult_raspagem(self, ID_Parceiro: str):
+        update_set = f"UPDATE Parceiros SET Ult_Raspagem = '{time.strftime(FORMAT_DATA)}' WHERE ID_Parceiro = {ID_Parceiro}"
+        executar_comando_sql(update_set)
+
     def select(
         self,
         categorizacao: str,
@@ -363,7 +370,7 @@ class Parceiros:
                 tabelas_script = (
                     "ID_Parceiro, ID_Metodo_Coleta, Tags_HTML_Raspagem, Link_Parceiro"
                 )
-                where_script = f"Ult_Raspagem < '{time.strftime(FORMAT_DATA)}'"
+                where_script = f"Ult_Raspagem < '{time.strftime(FORMAT_DATA)}' or Ult_Raspagem is NULL"
                 select_from = f"SELECT {tabelas_script} FROM {self.nome_tabela} WHERE {where_script}"
 
         return executar_comando_sql(select_from)
@@ -384,7 +391,6 @@ class Parceiros:
         ]
 
         for tag in tags_entries:
-            print("\n")
             try:
                 v_test = getattr(parse.entries[0], tag)
 
@@ -407,8 +413,8 @@ class Noticias:
         Link_Publicacao: str,
         Headline_Publicacao: str,
         Resumo_Publicacao: str,
-        Tema_Publicacao: str,
         Data_Publicacao_Parceiro: str,
+        Tema_Publicacao: str = None,
         Data_Registro_DB: str = time.strftime(FORMAT_DATA),
     ):
         """
@@ -418,6 +424,7 @@ class Noticias:
         Tema_P
         """
         values = {
+            "ID_Noticia": "null",
             "ID_Parceiro": ID_Parceiro,
             "Link_Publicacao": Link_Publicacao,
             "Headline_Publicacao": Headline_Publicacao,
@@ -429,6 +436,7 @@ class Noticias:
 
         value_string = transformar_valores_em_string("insert", values)
         insert_into = f"INSERT INTO {self.nome_tabela} VALUES ({value_string})"
+        # print(insert_into)
         executar_comando_sql(insert_into)
 
     def confirm_preferencia(self, ID_Pref_Usuario: str) -> list:

@@ -1,18 +1,9 @@
-texto = """
-1
-2
-3
-45
-5
-"""
-
-print(texto)
+from Script_Crawl import FioDaMeada_Script_Crawling as Script
 
 
-texto += """6
-7
-8
-9
-10
-"""
-print(texto)
+instancia = Script()
+
+
+instancia.logica_script()
+
+# print(instancia.import_info_raspagem()[0])

@@ -1,61 +1,79 @@
 import feedparser
-from SQL.sql_fiodameada import Noticias, Parceiros, connect_db, disconnect_db
+from SQL.sql_fiodameada import (
+    Noticias,
+    Parceiros,
+    connect_db,
+    disconnect_db,
+    json_to_dict,
+    FORMAT_DATA,
+)
 
 
 class FioDaMeada_Script_Crawling:
     def __init__(self) -> None:
-        connect_db()
+        self.queue: dict = {}
+        self.logica_script()
 
     def logica_script(self) -> None:
-        info_parceiros = self.import_links_parceiros()
-        rss_feed, web_scrapping = self.definir_metodo(info_parceiros)
+        info_raspagem = self.import_info_raspagem()
+        if not info_raspagem:
+            print("Sem Parceiros Disponíveis")
+            exit()
+        self.add_in_queue(info_raspagem)
+        self.import_noticias()
 
-        rss_feed_dict = self.import_rss_feed(rss_feed) if rss_feed else None
-        web_scrapping_dict = (
-            self.import_web_scrapping(web_scrapping) if web_scrapping else None
-        )
-
-    def import_links_parceiros(self):
+    def import_info_raspagem(self):
+        connect_db()
         return Parceiros().select(categorizacao="script")
 
-    def definir_metodo(self, infos: list) -> tuple:
-        rss_feed = []
-        web_scrapping = []
-
-        for info in infos:
-            match info[1]:
-                case 1:  # rss
-                    rss_feed.append(info)
-
-                case 2:  # web
-                    web_scrapping.append(info)
-
-        return (rss_feed, web_scrapping)
-
-    def import_rss_feed(self, rss_feed_list: list) -> dict:
-        rss_dict = {}
-
-        for feed in rss_feed_list:
+    def add_in_queue(self, info: list) -> dict:
+        for i, feed in enumerate(info):
+            # feed = feed[i]
+            print(feed)
             ID_Parceiro = feed[0]
             Link_Parceiro = feed[3]
-            rss_dict[ID_Parceiro] = feedparser.parse(Link_Parceiro)
+            Tags_HTML_Raspagem = feed[2]
+            ID_Metodo_Coleta = feed[1]
+            self.queue[ID_Parceiro] = {
+                "metodo": ID_Metodo_Coleta,
+                "link": Link_Parceiro,
+                "tags_html": json_to_dict(Tags_HTML_Raspagem),
+                "noticias": {},
+            }
 
-        return rss_dict
+    def import_noticias(self):
+        from time import strftime
 
-    def import_web_scrapping(self, web_scrapping_list: list) -> dict:
-        pass
+        for ID_Parceiro in self.queue:
+            feed = self.queue[ID_Parceiro]
+            feed_link_parse = feedparser.parse(feed["link"])
+            tag_headline = feed["tags_html"]["Headline"]
+            tag_texto = feed["tags_html"]["Text"]
+            tag_resumo = feed["tags_html"]["Resumo"]
 
-    def update_Parceiros_DB(self):
-        pass
+            for entrie in feed_link_parse.entries:
+                # feed["noticias"][i] = {
+                #     "Headline": getattr(entrie, tag_headline),
+                #     "Text": getattr(entrie, tag_texto),
+                #     "Resumo": getattr(entrie, tag_resumo),
+                #     "Data": entrie.published,
+                # }
 
-    def resumir_publicacao(self):
-        pass
-
-    def insert_Noticias_DB(self):
-        pass
+                Noticias().insert(
+                    ID_Parceiro=ID_Parceiro,
+                    Link_Publicacao=feed["link"],
+                    Headline_Publicacao=f"""{getattr(entrie, tag_headline)}""",
+                    Resumo_Publicacao=f"""{getattr(entrie, tag_texto)}""",
+                    Data_Publicacao_Parceiro=strftime(
+                        FORMAT_DATA, entrie.published_parsed
+                    ),
+                )
+            Parceiros().update_ult_raspagem(ID_Parceiro)
 
     def insert_Noticias_Preferencias_DB(self):
         pass
+        # posso tentar fazer algo na web que a pessoa possa nos ajudar
+        # não consigo definir precisamente qual é o tema de uma notícia sem alguma inteligência artificial ou um humano
 
 
 if __name__ == "__main__":
