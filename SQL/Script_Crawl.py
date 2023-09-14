@@ -1,9 +1,8 @@
 import feedparser
-from SQL.sql_fiodameada import (
+from sql_fiodameada import (
     Noticias,
     Parceiros,
     connect_db,
-    disconnect_db,
     json_to_dict,
     FORMAT_DATA,
 )
@@ -27,7 +26,7 @@ class FioDaMeada_Script_Crawling:
         return Parceiros().select(categorizacao="script")
 
     def add_in_queue(self, info: list) -> dict:
-        for i, feed in enumerate(info):
+        for feed in info:
             # feed = feed[i]
             print(feed)
             ID_Parceiro = feed[0]
@@ -49,7 +48,7 @@ class FioDaMeada_Script_Crawling:
             feed_link_parse = feedparser.parse(feed["link"])
             tag_headline = feed["tags_html"]["Headline"]
             tag_texto = feed["tags_html"]["Text"]
-            tag_resumo = feed["tags_html"]["Resumo"]
+            # tag_resumo = feed["tags_html"]["Resumo"]
 
             for entrie in feed_link_parse.entries:
                 # feed["noticias"][i] = {
@@ -61,7 +60,7 @@ class FioDaMeada_Script_Crawling:
 
                 Noticias().insert(
                     ID_Parceiro=ID_Parceiro,
-                    Link_Publicacao=feed["link"],
+                    Link_Publicacao=getattr(entrie, "link"),
                     Headline_Publicacao=f"""{getattr(entrie, tag_headline)}""",
                     Resumo_Publicacao=f"""{getattr(entrie, tag_texto)}""",
                     Data_Publicacao_Parceiro=strftime(

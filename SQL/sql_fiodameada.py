@@ -194,11 +194,11 @@ class Metodo_Raspagem_Noticias:
 
 class Preferencia_Usuarios:
     def __init__(self) -> None:
-        pass
+        self.nome_tabela = "Preferencia_Usuarios"
 
     def insert(self, Nome_Preferencia: str):
         """char(15)"""
-        insert_into = "INSERT INTO Preferencia_Usuarios (Nome_Preferencia) VALUES (%s)"
+        insert_into = "INSERT INTO {self.nome_tabela} (Nome_Preferencia) VALUES (%s)"
         values = [Nome_Preferencia]
         executar_comando_sql(insert_into, values)
 
@@ -208,7 +208,7 @@ class Preferencia_Usuarios:
         confirmation_string = confirmation_string.split("/")
 
         if type(confirmation_string) == list and confirmation_string:
-            delete_from = f"DELETE FROM Preferencia_Usuarios WHERE ID_Pref_Usuario = '{confirmation_string[0]}' AND Nome_Preferencia = '{confirmation_string[1]}'"
+            delete_from = f"DELETE FROM {self.nome_tabela} WHERE ID_Pref_Usuario = '{confirmation_string[0]}' AND Nome_Preferencia = '{confirmation_string[1]}'"
             executar_comando_sql(delete_from)
 
         else:
@@ -226,6 +226,10 @@ class Preferencia_Usuarios:
 
         else:
             return None
+
+    def select(self):
+        select_from = f"SELECT * FROM {self.nome_tabela}"
+        return executar_comando_sql(select_from)
 
 
 class Parceiros:
@@ -403,6 +407,7 @@ class Parceiros:
 class Noticias:
     def __init__(self) -> None:
         self.nome_tabela = "Noticias"
+        self.tabela_noticias_preferencia = "Noticias_Preferencias"
 
         # adicionar colunas para cada preferencia
         #
@@ -416,7 +421,7 @@ class Noticias:
         Data_Publicacao_Parceiro: str,
         Tema_Publicacao: str = None,
         Data_Registro_DB: str = time.strftime(FORMAT_DATA),
-    ):
+    ) -> None:
         """
         char(15)
         Formato Data= AAAA-MM-DD (2023-08-23) se vazio será o tempo atual
@@ -434,17 +439,28 @@ class Noticias:
             "Data_Registro_DB": Data_Registro_DB,
         }
 
-        value_string = transformar_valores_em_string("insert", values)
-        insert_into = f"INSERT INTO {self.nome_tabela} VALUES ({value_string})"
+        values_string = transformar_valores_em_string("insert", values)
+        insert_into = f"INSERT INTO {self.nome_tabela} VALUES ({values_string})"
         # print(insert_into)
         executar_comando_sql(insert_into)
 
     def confirm_preferencia(self, ID_Pref_Usuario: str) -> list:
         """Informe o ID_Parceiro ou Nome_Parceiro para confirmar"""
-        tabela_noticias_preferencia = "Noticias_Preferencias"
 
-        confirm_sql = f"SELECT * FROM {tabela_noticias_preferencia} WHERE ID_Pref_Usuario = {ID_Pref_Usuario}"
+        confirm_sql = f"SELECT * FROM {self.tabela_noticias_preferencia} WHERE ID_Pref_Usuario = {ID_Pref_Usuario}"
         return executar_comando_sql(confirm_sql)
+
+    def insert_preferencia(self, ID_Pref_Usuario: str, ID_Noticia: str) -> None:
+        values = {
+            "ID_Pref_Usuario": ID_Pref_Usuario,
+            "ID_Noticia": ID_Noticia,
+        }
+
+        values_string = transformar_valores_em_string("insert", values)
+        insert_into = (
+            f"INSERT INTO {self.tabela_noticias_preferencia} VALUES ({values_string})"
+        )
+        executar_comando_sql(insert_into)
 
     def select(
         self,
@@ -456,7 +472,7 @@ class Noticias:
         preferencia_id: str = None,
     ):
         """
-        categorizacao = 'data' / 'parceiro' / 'tema' / 'preferencia'
+        categorizacao = 'data' / 'parceiro' / 'tema' / 'preferencia / associacao'
         Formato Data = YYYY-MM-DD
 
         data_ate -> Se vazio então data atual
@@ -509,6 +525,13 @@ class Noticias:
                     )
                     return executar_comando_sql(select_from)
 
+            case "associacao":
+                if data_desde and data_ate:
+                    data_desde = f"Data_Publicacao_Parceiro >= '{data_desde}'"
+                    data_ate = f"AND Data_Publicacao_Parceiro <= '{data_ate}'"
+                    select_from = f"SELECT * FROM {self.nome_tabela} as nt INNER JOIN Noticias_Preferencias as np on NOT nt.ID_Noticia = np.ID_Noticia WHERE {data_desde} {data_ate}"
+                    return executar_comando_sql(select_from)
+
     def update(
         self,
         ID_Noticia: str,
@@ -518,8 +541,17 @@ class Noticias:
         Resumo_Publicacao: str = None,
         Tema_Publicacao: str = None,
         Data_Publicacao_Parceiro: str = None,
+        Status: str = None,
     ):
-        """ """
+        """
+        Status = 0 (Não Enviada)
+        Status = 1 (Enviada)
+        Status = 2 (Inutilizada)
+        """
+
+        if int(Status) < 0 or int(Status) > 2:
+            print("Status de Notícias apenas 0/1/2")
+            return None
 
         columns_dict = {
             "ID_Parceiro": ID_Parceiro,
@@ -528,6 +560,7 @@ class Noticias:
             "Resumo_Publicacao": Resumo_Publicacao,
             "Tema_Publicacao": Tema_Publicacao,
             "Data_Publicacao_Parceiro": Data_Publicacao_Parceiro,
+            "Status": Status,
         }
 
         set_string = transformar_valores_em_string("update", columns_dict)
@@ -547,7 +580,8 @@ class Envios:
         ID_Pref_Usuario: str,
         ID_Noticia: str,
         ID_Flow_DB: str,
-        Data_Envio: str,
+        Data_Envio: str = None,
+        Status: str = "0",
     ):
         """
         Formato Data= AAAA-MM-DD (2023-08-23)
@@ -559,6 +593,7 @@ class Envios:
             "ID_Noticia": ID_Noticia,
             "ID_Flow_DB": ID_Flow_DB,
             "Data_Envio": Data_Envio,
+            "Status": Status,
         }
 
         value_string = transformar_valores_em_string("insert", values)
