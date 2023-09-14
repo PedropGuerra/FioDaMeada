@@ -18,7 +18,7 @@ error = None
 
 def html_tags(link: str) -> str:
     tags_string = """"""
-    options_string = """"""
+    options_pref_string = """"""
 
     parse = feedparser.parse(link)
     tags = Parceiros().confirm_tags(parse=parse)
@@ -28,7 +28,7 @@ def html_tags(link: str) -> str:
         <h1>{tag}</h1>
         <p>: {getattr(parse.entries[0], tag)}</p>"""
 
-        options_string += f"""
+        options_pref_string += f"""
         <option value="{tag}">{tag}</option>"""
 
     html_string = f"""
@@ -36,21 +36,42 @@ def html_tags(link: str) -> str:
     <br>
     <form method="POST">
         Titulo Noticia <select name="Headline">
-            {options_string}
+            {options_pref_string}
         </select>
         <br>
         Texto_Publicacao <select name="Text">
-           {options_string}
+           {options_pref_string}
         </select>
         <br>
         Resumo_Publicacao <select name="Resumo">
-           {options_string}
+           {options_pref_string}
         </select>
         <input type="submit" value="Enviar">
     </form>
     """
 
     return html_string
+
+
+@app.route("/", methods=["POST", "GET"])
+def login():
+    if request.method == "POST":
+        connect_db(user=request.form["user"], password=request.form["password"])
+
+        return redirect(url_for("hub"))
+
+    else:
+        return render_template("login.html", error=error)
+
+
+@app.route("/hub")
+def hub():
+    hub_string = f"""
+    <a href="{url_for("cadastro")}">Cadastro Parceiro</a> <br>
+    <a href="{url_for("script")}">Script Raspagem Notícias (Manual)</a> <br>
+    <a href="{url_for("associacao_noticias")}">Associar Preferências às Notícias (Manual)</a> <br>
+    """
+    return hub_string
 
 
 @app.route("/cadastro_parceiro", methods=["POST", "GET"])
@@ -94,17 +115,8 @@ def cadastro():
     return render_template("cadastro.html", error=error)
 
 
-@app.route("/hub")
-def hub():
-    hub_string = f"""
-    <a href="{url_for("cadastro")}">Cadastro Parceiro</a> <br>
-    <a href="{url_for("script")}">Script Raspagem Notícias (Manual)</a> <br>
-    """
-    return hub_string
-
-
-@app.route("/associacao_preferencias", methods=["POST", "GET"])
-def associacao_preferencias():
+@app.route("/associacao_noticias", methods=["POST", "GET"])
+def associacao_noticias():
     if request.method == "POST":
         request_return = request.form.to_dict(flat=False)
         print(request_return)
@@ -114,15 +126,21 @@ def associacao_preferencias():
                 continue
 
             for id_pref in request_return[id_noticia]:
+                # Valor concatenado com "f" é formato, senão preferência
                 if id_pref == "":
                     continue
 
-                Noticias().insert_preferencia(
-                    ID_Pref_Usuario=id_pref, ID_Noticia=id_noticia
-                )
-                print(id_noticia, " + ", id_pref)
+                elif "f" in id_pref:
+                    # Formatos().insert(id_noticia, id_pref)
+                    continue
 
-        return redirect(url_for("associacao_preferencias"))
+                else:
+                    Noticias().insert_preferencia(
+                        ID_Pref_Usuario=id_pref, ID_Noticia=id_noticia
+                    )
+                    print(id_noticia, " + ", id_pref)
+
+        return redirect(url_for("associacao_noticias"))
 
     else:
         today = date.today()
@@ -130,20 +148,29 @@ def associacao_preferencias():
         data_ate = today + relativedelta(day=31)
         noticias_string = """<form method="POST">
         <input type="submit" value="Enviar">"""
-        options_string = """<option></option>"""
+        options_pref_string = """<option></option>"""
+        options_format_string = """<option></option>"""
 
         noticias = [None]
         preferencias = Preferencia_Usuarios().select()
+        # formatos = Formatos().select()
+        formatos = [(1, "Política"), (2, "Saúde")]
 
         for i, option in enumerate(preferencias):
-            id, option = option
-            options_string += f"""
-            <option value="{id}">{option}</option>
+            id_pref, option = option
+            options_pref_string += f"""
+            <option value="{id_pref}">{option}</option>
             """
             if i == len(preferencias) - 1:
-                options_string += f"""
+                options_pref_string += f"""
                 <option value="Inutilizar">Inutilizar</option>
                 """
+
+        for i, format in enumerate(formatos):
+            id_format, format = format
+            options_format_string += f"""
+            <option value="{id_format}f">{format}</option>
+            """
 
         # print(len(noticias))
         while len(noticias) != 0:
@@ -163,11 +190,12 @@ def associacao_preferencias():
                 <h3>{noticia[3][:150]}</h3>
                 <p>{noticia[4][:400]}</p>
                 <a href="{noticia[2]}">Link Noticia</a> <br>
-                <select name="{noticia[0]}" multiple>
-                <{options_string}
+                Preferências<select name="{noticia[0]}" multiple>
+                <{options_pref_string}
                 </select>
-                <p>Segure CTRL para selecionar +1</p>
-                <p>CUIDADO: Ao selecionar 'Inutilizar' a notícia não será associada</p>
+                Formatos<select name="{noticia[0]}">
+                <{options_format_string}
+                </select>
                 <br>
                 """
 
@@ -180,27 +208,22 @@ def associacao_preferencias():
         """
 
         return noticias_string
-    # exibir todas as notícias da separadas por semana
-    # exibir todas as preferências
-    # campo para associar preferências ao lado de cada uma
-    # atualizar todas de uma vez
-
-
-@app.route("/", methods=["POST", "GET"])
-def login():
-    if request.method == "POST":
-        connect_db(user=request.form["user"], password=request.form["password"])
-
-        return redirect(url_for("hub"))
-
-    else:
-        return render_template("login.html", error=error)
 
 
 @app.route("/script")
 def script():
     Script_Crawl.FioDaMeada_Script_Crawling()
     return "Success"
+
+
+def associacao_formatos():
+    pass
+
+    if request.method == "POST":
+        pass
+
+    else:
+        pass
 
 
 if __name__ == "__main__":

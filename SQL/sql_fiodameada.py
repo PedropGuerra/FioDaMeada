@@ -408,6 +408,7 @@ class Noticias:
     def __init__(self) -> None:
         self.nome_tabela = "Noticias"
         self.tabela_noticias_preferencia = "Noticias_Preferencias"
+        self.tabela_noticias_formato = "Noticias_Formatos"
 
         # adicionar colunas para cada preferencia
         #
@@ -459,6 +460,18 @@ class Noticias:
         values_string = transformar_valores_em_string("insert", values)
         insert_into = (
             f"INSERT INTO {self.tabela_noticias_preferencia} VALUES ({values_string})"
+        )
+        executar_comando_sql(insert_into)
+
+    def insert_formato(self, ID_Formato: str, ID_Noticia: str) -> None:
+        values = {
+            "ID_Formato": ID_Formato,
+            "ID_Noticia": ID_Noticia,
+        }
+
+        values_string = transformar_valores_em_string("insert", values)
+        insert_into = (
+            f"INSERT INTO {self.tabela_noticias_formato} VALUES ({values_string})"
         )
         executar_comando_sql(insert_into)
 
@@ -547,6 +560,7 @@ class Noticias:
         Status = 0 (Não Enviada)
         Status = 1 (Enviada)
         Status = 2 (Inutilizada)
+        Status = 3 (Programada)
         """
 
         if int(Status) < 0 or int(Status) > 2:
@@ -578,7 +592,8 @@ class Envios:
         self,
         ID_Envio: str,
         ID_Pref_Usuario: str,
-        ID_Noticia: str,
+        IDs_Noticia: str,
+        ID_Formato: str,
         ID_Flow_DB: str,
         Data_Envio: str = None,
         Status: str = "0",
@@ -588,9 +603,11 @@ class Envios:
 
         """
         values = {
+            "ID_Transacao_Envio": "null",
             "ID_Envio": ID_Envio,
             "ID_Pref_Usuario": ID_Pref_Usuario,
-            "ID_Noticia": ID_Noticia,
+            "IDs_Noticia": IDs_Noticia,
+            "ID_Formato": ID_Formato,
             "ID_Flow_DB": ID_Flow_DB,
             "Data_Envio": Data_Envio,
             "Status": Status,
