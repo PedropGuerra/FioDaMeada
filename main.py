@@ -46,6 +46,7 @@ class Envio:
         self.formato: dict = formatos
         self.preferencia_usuarios: str = preferencia_usuario
         self.mensage_dict: dict = {}
+        self.noticias: list = []
         
 
     def replace_space(text:str, replacements:dict):
@@ -64,11 +65,17 @@ class Envio:
         pass
         #Formatos().select(ID_Formato = self.formato)
     
+    def atualizar_status_noticias(self, IDs_Noticias: list) -> None:
+        for id in IDs_Noticias:
+            Noticias().update(ID_Noticia = id, Status = 3) #status programado
 
-    def selecionar_noticias(self, qtd: int):
+    def selecionar_noticias(self, qtd: int, noticias): #testar essa função
         from random import choices
-        noticias = self.importar_noticias()
-        return choices(noticias, k=qtd)
+        # noticias = self.importar_noticias()
+        selecao = choices(noticias, k=qtd)
+
+        self.noticias = 
+        return 
 
     
     def formatacao_html(self) -> dict:
