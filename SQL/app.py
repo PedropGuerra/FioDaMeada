@@ -215,15 +215,17 @@ def script():
     Script_Crawl.FioDaMeada_Script_Crawling()
     return "Success"
 
-
-def associacao_formatos():
+@app.route("/criacao_envios")
+def criacacao_envios():
     pass
 
-    if request.method == "POST":
-        pass
-
-    else:
-        pass
+@app.route("/edicao_formatacao_manual")
+def edicao_formatacao_manual():
+    pass
+    #input do ID evento
+    #download json
+    #input do json editado
+    #funcao de import do envio
 
 
 if __name__ == "__main__":

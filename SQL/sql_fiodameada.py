@@ -518,24 +518,8 @@ class Noticias:
 
             case "preferencia":
                 if preferencia_id:
-                    tabela_noticia_preferencia = self.confirm_preferencia(
-                        preferencia_id
-                    )
-                    lista_noticias = list()
-                    noticias_string = ""
-
-                    for num_noticia in tabela_noticia_preferencia:
-                        lista_noticias.append(num_noticia[1])
-
-                    for i, num_noticia in enumerate(lista_noticias):
-                        noticias_string += f"ID_Noticia = {num_noticia}"
-
-                        if i != len(lista_noticias) - 1:
-                            noticias_string += " AND "
-
-                    select_from = (
-                        f"SELECT * FROM {self.nome_tabela} Where {noticias_string}"
-                    )
+                    where = f"ID_Pref_Usuario = {preferencia_id}"
+                    select_from = f"select * from {self.nome_tabela} as n INNER JOIN {self.tabela_noticia_preferencias} as np on n.ID_Noticia = np.ID_Noticia INNER JOIN {self.tabela_noticias_formato} as nf on n.ID_Noticia = nf.ID_Noticia WHERE {where}"
                     return executar_comando_sql(select_from)
 
             case "associacao":
@@ -545,6 +529,8 @@ class Noticias:
                     select_from = f"SELECT * FROM {self.nome_tabela} as nt INNER JOIN Noticias_Preferencias as np on NOT nt.ID_Noticia = np.ID_Noticia WHERE {data_desde} {data_ate}"
                     return executar_comando_sql(select_from)
 
+            case ""
+        
     def update(
         self,
         ID_Noticia: str,
