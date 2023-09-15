@@ -1,15 +1,11 @@
-from flask import *
-from sql_fiodameada import (
-    Parceiros,
-    connect_db,
-    dict_to_json,
-    Noticias,
-    Preferencia_Usuarios,
-)
-import feedparser
-import Script_Crawl
 from datetime import date, timedelta
+import feedparser
+from flask import *
 from dateutil.relativedelta import relativedelta
+import SCRIPTS.sql_fiodameada as SQL
+import SCRIPTS.Script_Crawl as Script_Crawl
+from SCRIPTS.integracao import Envio, formatacao_html
+from threading import Thread
 
 app = Flask(__name__)
 
@@ -21,9 +17,9 @@ def html_tags(link: str) -> str:
     options_pref_string = """"""
 
     parse = feedparser.parse(link)
-    tags = Parceiros().confirm_tags(parse=parse)
+    tags = SQL.Parceiros().confirm_tags(parse=parse)
 
-    for i, tag in enumerate(tags):
+    for tag in tags:
         tags_string += f"""
         <h1>{tag}</h1>
         <p>: {getattr(parse.entries[0], tag)}</p>"""
@@ -56,7 +52,7 @@ def html_tags(link: str) -> str:
 @app.route("/", methods=["POST", "GET"])
 def login():
     if request.method == "POST":
-        connect_db(user=request.form["user"], password=request.form["password"])
+        SQL.connect_db(user=request.form["user"], password=request.form["password"])
 
         return redirect(url_for("hub"))
 
@@ -70,13 +66,14 @@ def hub():
     <a href="{url_for("cadastro")}">Cadastro Parceiro</a> <br>
     <a href="{url_for("script")}">Script Raspagem Notícias (Manual)</a> <br>
     <a href="{url_for("associacao_noticias")}">Associar Preferências às Notícias (Manual)</a> <br>
+    <a href="{url_for("criar_envios")}">Criar Novos Envios (Manual)</a> <br>
     """
     return hub_string
 
 
 @app.route("/cadastro_parceiro", methods=["POST", "GET"])
 def cadastro():
-    parceiros = Parceiros()
+    parceiros = SQL.Parceiros()
     if request.method == "POST":
         if "Headline" in request.form:
             dict_tags = {
@@ -90,7 +87,7 @@ def cadastro():
             parceiro_id = parceiros.confirm(Nome_Parceiro=parceiro_nome)[0][0]
 
             parceiros.update(
-                ID_Parceiro=parceiro_id, Tags_HTML_Raspagem=dict_to_json(dict_tags)
+                ID_Parceiro=parceiro_id, Tags_HTML_Raspagem=SQL.dict_to_json(dict_tags)
             )
 
             redirect(url_for("cadastro"))
@@ -122,7 +119,7 @@ def associacao_noticias():
         print(request_return)
         for id_noticia in request_return:
             if "Inutilizar" in request_return[id_noticia]:
-                Noticias().update(ID_Noticia=id_noticia, Status="2")
+                SQL.Noticias().update(ID_Noticia=id_noticia, Status="2")
                 continue
 
             for id_pref in request_return[id_noticia]:
@@ -131,11 +128,14 @@ def associacao_noticias():
                     continue
 
                 elif "f" in id_pref:
-                    # Formatos().insert(id_noticia, id_pref)
-                    continue
+                    # Noticias_Formatos().insert(id_noticia, id_pref)
+                    formato = id_pref.removesuffix("f")
+                    SQL.Noticias().insert_formato(
+                        ID_Formato=formato, ID_Noticia=id_noticia
+                    )
 
                 else:
-                    Noticias().insert_preferencia(
+                    SQL.Noticias().insert_preferencia(
                         ID_Pref_Usuario=id_pref, ID_Noticia=id_noticia
                     )
                     print(id_noticia, " + ", id_pref)
@@ -146,15 +146,16 @@ def associacao_noticias():
         today = date.today()
         data_desde = today + relativedelta(day=1)
         data_ate = today + relativedelta(day=31)
+
         noticias_string = """<form method="POST">
         <input type="submit" value="Enviar">"""
         options_pref_string = """<option></option>"""
         options_format_string = """<option></option>"""
 
         noticias = [None]
-        preferencias = Preferencia_Usuarios().select()
+        preferencias = SQL.Preferencia_Usuarios().select()
         # formatos = Formatos().select()
-        formatos = [(1, "Política"), (2, "Saúde")]
+        formatos = SQL.Formatos().select(categorizacao="todos")
 
         for i, option in enumerate(preferencias):
             id_pref, option = option
@@ -162,19 +163,19 @@ def associacao_noticias():
             <option value="{id_pref}">{option}</option>
             """
             if i == len(preferencias) - 1:
-                options_pref_string += f"""
+                options_pref_string += """
                 <option value="Inutilizar">Inutilizar</option>
                 """
 
-        for i, format in enumerate(formatos):
-            id_format, format = format
+        for i, formato in enumerate(formatos):
+            id_format, formato = formato
             options_format_string += f"""
-            <option value="{id_format}f">{format}</option>
+            <option value="{id_format}f">{formato}</option>
             """
 
         # print(len(noticias))
         while len(noticias) != 0:
-            noticias = Noticias().select(
+            noticias = SQL.Noticias().select(
                 categorizacao="associacao",
                 data_desde=str(data_desde),
                 data_ate=str(data_ate),
@@ -215,17 +216,67 @@ def script():
     Script_Crawl.FioDaMeada_Script_Crawling()
     return "Success"
 
-@app.route("/criacao_envios")
-def criacacao_envios():
-    pass
 
-@app.route("/edicao_formatacao_manual")
-def edicao_formatacao_manual():
-    pass
-    #input do ID evento
-    #download json
-    #input do json editado
-    #funcao de import do envio
+@app.route("/criar_envios")
+def criar_envios():
+    # criar envios em um loop por preferencia
+    # é preciso criar todos os formatos da semana por cada preferencia
+    # importar todos os formatos e preferencias e fazer um for loop
+
+    formatos = SQL.Formatos().select(categorizacao="todos")
+    print(formatos)
+    preferencias = SQL.Preferencia_Usuarios().select()
+    print(preferencias)
+
+    def worker(preferencias, formatos):
+        print("começando o worker")
+        envios = {}
+        for pref in preferencias:
+            for formato in formatos:
+                envio = Envio(formato=formato, preferencia_usuarios=pref)
+                envio.criar()
+                envios[envio.id_envio] = envio
+                print(f"envio {envio.id_envio}\n pref:{pref}\nformat:{formato}")
+
+        for envio in envios.keys():
+            print("atualizando status")
+            envio.atualizar_status_noticias()
+
+    print("começando a criar")
+    Thread(target=worker, args=(preferencias, formatos)).start()
+    return "Success"
+
+
+@app.route("/confirmar_envios", methods=["POST", "GET"])
+def confirmar_envios():
+    if request.method == "POST":
+        # Auth_SendPulse().publicar_envios()
+        pass
+
+    else:
+        envios = SQL.Envios().select()
+        noticias = [envio[2] for envio in envios]
+        noticias = SQL.Noticias().select(categorizacao="IDs", IDs_Noticias=noticias)
+
+        envios_string = """<form method="post">
+        <input type="submit" value="Enviar">"""
+
+        for envio in envios:
+            formato = SQL.Formatos().select(categorizacao="id", ID_Formato=envio[3])
+            envios_string += f"""
+            {formatacao_html(noticias=noticias, html_format= formato)}
+            <select name="{envio[0]}">
+                <option value="Aprovado"></option>
+                <option value="Repovado"></option>
+            </select>
+            <br>
+            """
+        return envios_string
+
+
+# @app.route("/formatacao_manual")
+# def formatacao_manual():
+#     pass
 
 
 if __name__ == "__main__":

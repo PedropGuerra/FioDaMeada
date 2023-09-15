@@ -4,6 +4,7 @@ dadadas"""
 import mysql.connector
 import time
 import json
+import bleach
 
 # """
 # - CRUD de todas as tabelas
@@ -15,6 +16,14 @@ HOST = "34.134.108.235"
 USER = "pedro"
 PASSWORD = "959538698gbP@"
 FORMAT_DATA = "%Y-%m-%d"
+
+
+def sanitizar_input(input):
+    if input != None:
+        return bleach.clean(input)
+
+    else:
+        return input
 
 
 def connect_db(user: str = None, password: str = None) -> None:
@@ -255,6 +264,7 @@ class Parceiros:
         ID_Metodo_Coleta = 1/2/3/4/5/n.....
         """
         values = {
+            "ID_Parceiro": "null",
             "Nome_Parceiro": Nome_Parceiro,
             "Data_Registro_DB": Data_Registro_DB,
             "Link_Parceiro": Link_Parceiro,
@@ -422,6 +432,7 @@ class Noticias:
         Data_Publicacao_Parceiro: str,
         Tema_Publicacao: str = None,
         Data_Registro_DB: str = time.strftime(FORMAT_DATA),
+        Status: str = "0",
     ) -> None:
         """
         char(15)
@@ -432,18 +443,22 @@ class Noticias:
         values = {
             "ID_Noticia": "null",
             "ID_Parceiro": ID_Parceiro,
-            "Link_Publicacao": Link_Publicacao,
-            "Headline_Publicacao": Headline_Publicacao,
-            "Resumo_Publicacao": Resumo_Publicacao,
-            "Tema_Publicacao": Tema_Publicacao,
+            "Link_Publicacao": sanitizar_input(Link_Publicacao),
+            "Headline_Publicacao": sanitizar_input(Headline_Publicacao),
+            "Resumo_Publicacao": sanitizar_input(Resumo_Publicacao),
+            "Tema_Publicacao": sanitizar_input(Tema_Publicacao),
             "Data_Publicacao_Parceiro": Data_Publicacao_Parceiro,
             "Data_Registro_DB": Data_Registro_DB,
+            "Status": Status,
         }
 
         values_string = transformar_valores_em_string("insert", values)
         insert_into = f"INSERT INTO {self.nome_tabela} VALUES ({values_string})"
         # print(insert_into)
-        executar_comando_sql(insert_into)
+        try:
+            executar_comando_sql(insert_into)
+        except:
+            pass
 
     def confirm_preferencia(self, ID_Pref_Usuario: str) -> list:
         """Informe o ID_Parceiro ou Nome_Parceiro para confirmar"""
@@ -483,9 +498,10 @@ class Noticias:
         parceiro_id: str = None,
         tema: str = None,
         preferencia_id: str = None,
+        IDs_Noticias: list = None,
     ):
         """
-        categorizacao = 'data' / 'parceiro' / 'tema' / 'preferencia / associacao'
+        categorizacao = 'data' / 'parceiro' / 'tema' / 'preferencia / associacao' / 'IDs/
         Formato Data = YYYY-MM-DD
 
         data_ate -> Se vazio então data atual
@@ -529,8 +545,15 @@ class Noticias:
                     select_from = f"SELECT * FROM {self.nome_tabela} as nt INNER JOIN Noticias_Preferencias as np on NOT nt.ID_Noticia = np.ID_Noticia WHERE {data_desde} {data_ate}"
                     return executar_comando_sql(select_from)
 
-            case ""
-        
+            case "IDs":
+                if IDs_Noticias:
+                    where = ""
+                    for i, id in enumerate(IDs_Noticias):
+                        where += "ID_Noticia = {id}"
+                        if i != len(IDs_Noticias) - 1:
+                            where += " OR "
+                    select_from = f"SELECT * FROM {self.nome_tabela} WHERE {where}"
+
     def update(
         self,
         ID_Noticia: str,
@@ -555,10 +578,10 @@ class Noticias:
 
         columns_dict = {
             "ID_Parceiro": ID_Parceiro,
-            "Link_Publicacao": Link_Publicacao,
-            "Headline_Publicacao": Headline_Publicacao,
-            "Resumo_Publicacao": Resumo_Publicacao,
-            "Tema_Publicacao": Tema_Publicacao,
+            "Link_Publicacao": sanitizar_input(Link_Publicacao),
+            "Headline_Publicacao": sanitizar_input(Headline_Publicacao),
+            "Resumo_Publicacao": sanitizar_input(Resumo_Publicacao),
+            "Tema_Publicacao": sanitizar_input(Tema_Publicacao),
             "Data_Publicacao_Parceiro": Data_Publicacao_Parceiro,
             "Status": Status,
         }
@@ -576,32 +599,83 @@ class Envios:
 
     def insert(
         self,
-        ID_Envio: str,
-        ID_Pref_Usuario: str,
-        IDs_Noticia: str,
-        ID_Formato: str,
-        ID_Flow_DB: str,
+        ID_Pref_Usuario: str = None,
+        IDs_Noticia: str = None,
+        ID_Formato: str = None,
+        ID_Flow_DB: str = None,
+        Dia_Semana: int = None,
         Data_Envio: str = None,
-        Status: str = "0",
+        Data_Criacao: str = None,
+        Status: str = None,
+        Requisicao_JSON=None,
     ):
         """
         Formato Data= AAAA-MM-DD (2023-08-23)
 
         """
         values = {
-            "ID_Transacao_Envio": "null",
-            "ID_Envio": ID_Envio,
+            "ID_Envio": "null",
             "ID_Pref_Usuario": ID_Pref_Usuario,
             "IDs_Noticia": IDs_Noticia,
             "ID_Formato": ID_Formato,
             "ID_Flow_DB": ID_Flow_DB,
+            "Dia_Semana": Dia_Semana,
             "Data_Envio": Data_Envio,
+            "Data_Criacao": Data_Criacao,
             "Status": Status,
+            "Requisicao_JSON": Requisicao_JSON,
         }
 
         value_string = transformar_valores_em_string("insert", values)
         insert_into = f"INSERT INTO {self.nome_tabela} VALUES ({value_string})"
         executar_comando_sql(insert_into)
+
+        select_from = f"SELECT MAX(ID_Envio) FROM {self.nome_tabela}"
+        return executar_comando_sql(select_from)
+
+    def update(
+        self,
+        ID_Envio: str,
+        ID_Pref_Usuario: str = None,
+        IDs_Noticia: str = None,
+        ID_Formato: str = None,
+        ID_Flow_DB: str = None,
+        Dia_Semana: int = None,
+        Data_Envio: str = None,
+        Data_Criacao: str = None,
+        Status: str = None,
+        Requisicao_JSON=None,
+    ):
+        columns_dict = {
+            "ID_Pref_Usuario": ID_Pref_Usuario,
+            "IDs_Noticia": IDs_Noticia,
+            "ID_Formato": ID_Formato,
+            "ID_Flow_DB": ID_Flow_DB,
+            "Dia_Semana": Dia_Semana,
+            "Data_Envio": Data_Envio,
+            "Data_Criacao": Data_Criacao,
+            "Status": Status,
+            "Requisicao_JSON": Requisicao_JSON,
+        }
+
+        set_string = transformar_valores_em_string("update", columns_dict)
+        where = f"ID_Envio = {ID_Envio}"
+        sql_string = f"UPDATE {self.nome_tabela} SET {set_string} WHERE {where}"
+
+        executar_comando_sql(sql_string)
+
+    def select(
+        self,
+    ):
+        from datetime import date
+        from dateutil.relativedelta import relativedelta
+
+        today = date.today()
+        prim_dia = today + relativedelta(day=1)
+        ult_dia = today + relativedelta(day=31)
+        where = f"Data_Criacao >= {prim_dia} AND Data_Criacao <= {ult_dia}"
+        select_from = f"SELECT * FROM {self.nome_tabela} WHERE {where}"
+        return executar_comando_sql(select_from)
 
 
 class Usuarios:
@@ -753,5 +827,104 @@ class Usuarios:
         set_string = transformar_valores_em_string("update", columns_dict)
 
         sql_string = f"UPDATE {self.nome_tabela} SET {set_string} WHERE ID_Usuario = {ID_Usuario}"
+
+        executar_comando_sql(sql_string)
+
+
+class Formatos:
+    def __init__(self) -> None:
+        self.nome_tabela = "Formatos"
+
+    def insert(
+        self, Nome_Formato: str, HTML_Formato: str, Dia_Semana: int, ID_Flow_DB: str
+    ) -> None:
+        """
+        Dia_Semana = 1 (Domingo)
+        Dia_Semana = 2 (Segunda)
+        Dia_Semana = 3 (Terça)
+        Dia_Semana = 4 (Quarta)
+        Dia_Semana = 5 (Quinta)
+        Dia_Semana = 6 (Sexta)
+        Dia_Semana = 7 (Sábado)
+        """
+
+        values = {
+            "ID_Formato": "null",
+            "Nome_Formato": Nome_Formato,
+            "HTML_Formato": HTML_Formato,
+            "Dia_Semana": Dia_Semana,
+            "ID_Flow_DB": ID_Flow_DB,
+        }
+
+        values_string = transformar_valores_em_string("insert", values)
+        insert_into = f"INSERT INTO {self.nome_tabela} VALUES ({values_string})"
+
+        executar_comando_sql(insert_into)
+
+    def select(
+        self,
+        categorizacao: str,
+        ID_Formato: str = None,
+        Dia_Semana: int = None,
+    ):
+        """
+        categorizacao = 'id', 'dia', 'todos'
+        Dia_Semana = 1 (Domingo)
+        Dia_Semana = 2 (Segunda)
+        Dia_Semana = 3 (Terça)
+        Dia_Semana = 4 (Quarta)
+        Dia_Semana = 5 (Quinta)
+        Dia_Semana = 6 (Sexta)
+        Dia_Semana = 7 (Sábado)
+        """
+
+        match categorizacao:
+            case "id":
+                if ID_Formato:
+                    where = f"ID_Formato = {ID_Formato}"
+                    select_from = f"SELECT * FROM {self.nome_tabela} WHERE {where}"
+                    return executar_comando_sql(select_from)
+
+            case "dia":
+                if Dia_Semana and Dia_Semana <= 7 and Dia_Semana >= 1:
+                    where = f"Dia_Semana = {Dia_Semana}"
+                    select_from = f"SELECT * FROM {self.nome_tabela} WHERE {where}"
+                    return executar_comando_sql(select_from)
+
+                else:
+                    print("Dias da Semana apenas 1/2/3/4/5/6/7")
+                    return None
+
+            case "todos":
+                select_from = f"SELECT * FROM {self.nome_tabela}"
+                return executar_comando_sql(select_from)
+
+    def update(
+        self,
+        ID_Formato: str,
+        Nome_Formato: str = None,
+        HTML_Formato: str = None,
+        Dia_Semana: int = None,
+    ):
+        """
+        Dia_Semana = 1 (Domingo)
+        Dia_Semana = 2 (Segunda)
+        Dia_Semana = 3 (Terça)
+        Dia_Semana = 4 (Quarta)
+        Dia_Semana = 5 (Quinta)
+        Dia_Semana = 6 (Sexta)
+        Dia_Semana = 7 (Sábado)
+        """
+
+        columns_dict = {
+            "ID_Formato": ID_Formato,
+            "Nome_Formato": Nome_Formato,
+            "HTML_Formato": HTML_Formato,
+            "Dia_Semana": Dia_Semana,
+        }
+
+        set_string = transformar_valores_em_string("update", columns_dict)
+        where = f"ID_Formato = {ID_Formato}"
+        sql_string = f"UPDATE {self.nome_tabela} SET {set_string} WHERE {where}"
 
         executar_comando_sql(sql_string)

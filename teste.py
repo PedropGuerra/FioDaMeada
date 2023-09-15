@@ -1,5 +1,3 @@
-from main import Envio
-from SQL.sql_fiodameada import Noticias, connect_db
+from SCRIPTS.sql_fiodameada import *
 
-
-
+noticias = Noticias().select()

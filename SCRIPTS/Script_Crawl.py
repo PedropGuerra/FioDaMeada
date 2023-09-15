@@ -1,5 +1,5 @@
 import feedparser
-from sql_fiodameada import (
+from SCRIPTS.sql_fiodameada import (
     Noticias,
     Parceiros,
     connect_db,
@@ -68,13 +68,3 @@ class FioDaMeada_Script_Crawling:
                     ),
                 )
             Parceiros().update_ult_raspagem(ID_Parceiro)
-
-    def insert_Noticias_Preferencias_DB(self):
-        pass
-        # posso tentar fazer algo na web que a pessoa possa nos ajudar
-        # não consigo definir precisamente qual é o tema de uma notícia sem alguma inteligência artificial ou um humano
-
-
-if __name__ == "__main__":
-    instancia = FioDaMeada_Script_Crawling()
-    print(instancia.import_links_parceiros())
