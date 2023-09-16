@@ -611,7 +611,9 @@ class Envios:
     ):
         """
         Formato Data= AAAA-MM-DD (2023-08-23)
-
+        Status = 0 (Pendente)
+        Status = 1 (Enviado)
+        Status = 2 (Confirmado)
         """
         values = {
             "ID_Envio": "null",
@@ -664,18 +666,31 @@ class Envios:
 
         executar_comando_sql(sql_string)
 
-    def select(
-        self,
-    ):
+    def select(self, categorizacao: str, dia_semana: int = None):
+        """
+        categorizacao = 'todos', 'todos/confirmados' ,'confirmados/dia'
+        """
+
         from datetime import date
         from dateutil.relativedelta import relativedelta
 
         today = date.today()
         prim_dia = today + relativedelta(day=1)
         ult_dia = today + relativedelta(day=31)
-        where = f"Data_Criacao >= {prim_dia} AND Data_Criacao <= {ult_dia}"
-        select_from = f"SELECT * FROM {self.nome_tabela} WHERE {where}"
-        return executar_comando_sql(select_from)
+
+        match categorizacao:
+            case "confirmados/dia":
+                if dia_semana:
+                    where = f"Data_Criacao >= {prim_dia} AND Data_Criacao <= {ult_dia} AND Status = 2 AND Dia_Semana = {dia_semana}"
+                    select_from = f"SELECT * FROM {self.nome_tabela} WHERE {where}"
+
+            case "todos":
+                where = f"Data_Criacao >= {prim_dia} AND Data_Criacao <= {ult_dia}"
+                select_from = f"SELECT * FROM {self.nome_tabela} WHERE {where}"
+                return executar_comando_sql(select_from)
+
+            case "todos/confirmados":
+                pass
 
 
 class Usuarios:

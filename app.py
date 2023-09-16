@@ -4,8 +4,8 @@ from flask import *
 from dateutil.relativedelta import relativedelta
 import SCRIPTS.sql_fiodameada as SQL
 import SCRIPTS.Script_Crawl as Script_Crawl
-from SCRIPTS.integracao import Envio, formatacao_html
-from threading import Thread
+from SCRIPTS.integracao import Envio, formatacao_html, Auth_SendPulse
+import concurrent.futures
 
 app = Flask(__name__)
 
@@ -116,7 +116,7 @@ def cadastro():
 def associacao_noticias():
     if request.method == "POST":
         request_return = request.form.to_dict(flat=False)
-        print(request_return)
+        # print(request_return)
         for id_noticia in request_return:
             if "Inutilizar" in request_return[id_noticia]:
                 SQL.Noticias().update(ID_Noticia=id_noticia, Status="2")
@@ -243,7 +243,10 @@ def criar_envios():
             envio.atualizar_status_noticias()
 
     print("começando a criar")
-    Thread(target=worker, args=(preferencias, formatos)).start()
+    # Thread(target=worker, args=(preferencias, formatos)).start()
+
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        results = executor.submit(worker, preferencias, formatos)
     return "Success"
 
 
@@ -251,6 +254,7 @@ def criar_envios():
 def confirmar_envios():
     if request.method == "POST":
         # Auth_SendPulse().publicar_envios()
+        # request_return = request.form.to_dict(flat=False)
         pass
 
     else:
@@ -272,6 +276,25 @@ def confirmar_envios():
             <br>
             """
         return envios_string
+
+
+@app.route("/enviar_mensagens/<dia_semana>")
+def enviar_mensagens(dia_semana):
+    envios_confirmados = SQL.Envios().select(
+        categorizacao="confirmados/dia", dia_semana=dia_semana
+    )
+
+    # Auth_SendPulse().auth()
+    # Auth_SendPulse().get_bots()
+
+    qtd_envios = len(envios_confirmados)
+
+    # puxar todas os envios confirmados com o dia da semana correspondente
+    # puxar a autenticacao da SendPulse
+    # puxar todos os bots -> contatos
+    # confirmar todas as requisições
+    # dividir as requisições para utilizar em diferentes workers
+    # utilizar alguns workers para enviar mais ao mesmo tempo
 
 
 # @app.route("/formatacao_manual")
