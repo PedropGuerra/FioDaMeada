@@ -419,6 +419,7 @@ class Noticias:
         self.nome_tabela = "Noticias"
         self.tabela_noticias_preferencia = "Noticias_Preferencias"
         self.tabela_noticias_formato = "Noticias_Formatos"
+        self.tabela_noticias_usuarios = "Noticias_Usuarios"
 
         # adicionar colunas para cada preferencia
         #
@@ -478,66 +479,71 @@ class Noticias:
         )
         executar_comando_sql(insert_into)
 
-    def insert_formato(self, ID_Formato: str, ID_Noticia: str) -> None:
+    # def insert_formato(self, ID_Formato: str, ID_Noticia: str) -> None:
+    #     values = {
+    #         "ID_Formato": ID_Formato,
+    #         "ID_Noticia": ID_Noticia,
+    #     }
+
+    #     values_string = transformar_valores_em_string("insert", values)
+    #     insert_into = (
+    #         f"INSERT INTO {self.tabela_noticias_formato} VALUES ({values_string})"
+    #     )
+    #     executar_comando_sql(insert_into)
+
+    def noticias_usuario(self, ID_Contato: str, IDs_Noticia) -> None:
         values = {
-            "ID_Formato": ID_Formato,
-            "ID_Noticia": ID_Noticia,
+            "ID_Contato": ID_Contato,
+            "IDs_Noticia": IDs_Noticia,
         }
 
         values_string = transformar_valores_em_string("insert", values)
+
         insert_into = (
-            f"INSERT INTO {self.tabela_noticias_formato} VALUES ({values_string})"
+            f"INSERT INTO {self.tabela_noticias_usuarios} VALUES ({values_string})"
         )
+
         executar_comando_sql(insert_into)
 
     def select(
         self,
-        categorizacao: str,
+        formato: str = None,
         data_desde: str = None,
         data_ate: str = None,
-        parceiro_id: str = None,
-        tema: str = None,
-        preferencia_id: str = None,
-        IDs_Noticias: list = None,
+        # parceiro_id: str = None,
+        # tema: str = None,
+        preferencias_id: tuple = None,
+        # IDs_Noticias: list = None,
+        contact_id: str = None,
+        qtd_noticias: int = None,
+        qtd_fakenews: int = None,
     ):
         """
-        categorizacao = 'data' / 'parceiro' / 'tema' / 'preferencia / associacao' / 'IDs/
+        formato = 'associacao', 'qtd_noticias' , 'qtd_fakenews'
         Formato Data = YYYY-MM-DD
 
         data_ate -> Se vazio então data atual
         """
 
-        match categorizacao:
-            case "data":
-                if data_desde:
-                    if data_ate is None:
-                        data_ate = time.strftime(FORMAT_DATA)
+        if formato != "associacao":
+            if preferencias_id and contact_id and len(preferencias_id) == 3:
+                col_pref = "ID_Pref_Usuario"
+                where = f"Status = 0 AND NOT ID_Contato = {contact_id}"
+                where += f" AND ({col_pref} = {preferencias_id[0]} or {col_pref} = {preferencias_id[1]} or {col_pref} = {preferencias_id[2]})"
+                where_noticia = " AND Fake = 0"
+                where_fake = " AND Fake = 1"
+                limit_random_noticia = f" ORDER BY RAND() LIMIT {qtd_noticias}"
+                limit_random_fake = f" ORDER BY RAND() LIMIT {qtd_fakenews}"
 
-                    data_desde = f"Data_Publicacao_Parceiro >= '{data_desde}'"
-                    data_ate = f"AND Data_Publicacao_Parceiro <= '{data_ate}'"
-                    select_from = f"SELECT * FROM {self.nome_tabela} Where {data_desde} {data_ate}"
-                    return executar_comando_sql(select_from)
+                cols_to_select = "n.ID_Noticia, n.ID_Parceiro, n.Link_Publicacao, n.Headline_Publicacao, n.Resumo_Publicacao, n.Fake"
+                select_from = (
+                    f"SELECT DISTINCT {cols_to_select} from {self.nome_tabela} as n"
+                )
+                select_from += f" INNER JOIN {self.tabela_noticias_preferencia} as np on n.ID_Noticia = np.ID_Noticia"
+                select_from += f" CROSS JOIN {self.tabela_noticias_usuarios}"
+                select_from += f" WHERE {where}"
 
-            case "parceiro":
-                if parceiro_id:
-                    parceiro_id = f"ID_Parceiro = '{parceiro_id}'"
-                    select_from = (
-                        f"SELECT * FROM {self.nome_tabela} Where {parceiro_id}"
-                    )
-                    return executar_comando_sql(select_from)
-
-            case "tema":
-                if tema:
-                    tema = f"Tema_Publicacao = '{tema}'"
-                    select_from = f"SELECT * FROM {self.nome_tabela} Where {tema}"
-                    return executar_comando_sql(select_from)
-
-            case "preferencia":
-                if preferencia_id:
-                    where = f"ID_Pref_Usuario = {preferencia_id}"
-                    select_from = f"select * from {self.nome_tabela} as n INNER JOIN {self.tabela_noticia_preferencias} as np on n.ID_Noticia = np.ID_Noticia INNER JOIN {self.tabela_noticias_formato} as nf on n.ID_Noticia = nf.ID_Noticia WHERE {where}"
-                    return executar_comando_sql(select_from)
-
+        match formato:
             case "associacao":
                 if data_desde and data_ate:
                     data_desde = f"Data_Publicacao_Parceiro >= '{data_desde}'"
@@ -545,14 +551,15 @@ class Noticias:
                     select_from = f"SELECT * FROM {self.nome_tabela} as nt INNER JOIN Noticias_Preferencias as np on NOT nt.ID_Noticia = np.ID_Noticia WHERE {data_desde} {data_ate}"
                     return executar_comando_sql(select_from)
 
-            case "IDs":
-                if IDs_Noticias:
-                    where = ""
-                    for i, id in enumerate(IDs_Noticias):
-                        where += "ID_Noticia = {id}"
-                        if i != len(IDs_Noticias) - 1:
-                            where += " OR "
-                    select_from = f"SELECT * FROM {self.nome_tabela} WHERE {where}"
+            case "qtd_noticias":
+                return executar_comando_sql(
+                    select_from + where_noticia + limit_random_noticia
+                )
+
+            case "qtd_fakenews":
+                return executar_comando_sql(
+                    select_from + where_fake + limit_random_fake
+                )
 
     def update(
         self,
@@ -693,157 +700,157 @@ class Envios:
                 pass
 
 
-class Usuarios:
-    def __init__(self) -> None:
-        self.nome_tabela = "Usuarios"
+# class Usuarios:
+#     def __init__(self) -> None:
+#         self.nome_tabela = "Usuarios"
 
-    def insert(
-        self,
-        Primeiro_Nome: str,
-        Ult_Nome: str = None,
-        Data_Registro: str = time.strftime(FORMAT_DATA),
-        DDD: str = None,
-        Telefone_Celular: str = None,
-        Tipo_WhatsApp: str = None,
-        Status: str = "1",
-        Data_Nasc: str = None,
-    ):
-        """ """
-        Data_Ult_Interacao = None
+#     def insert(
+#         self,
+#         Primeiro_Nome: str,
+#         Ult_Nome: str = None,
+#         Data_Registro: str = time.strftime(FORMAT_DATA),
+#         DDD: str = None,
+#         Telefone_Celular: str = None,
+#         Tipo_WhatsApp: str = None,
+#         Status: str = "1",
+#         Data_Nasc: str = None,
+#     ):
+#         """ """
+#         Data_Ult_Interacao = None
 
-        values = {
-            "Primeiro_Nome": Primeiro_Nome,
-            "Ult_Nome": Ult_Nome,
-            "Data_Registro": Data_Registro,
-            "DDD": DDD,
-            "Telefone_Celular": Telefone_Celular,
-            "Tipo_WhatsApp": Tipo_WhatsApp,
-            "Data_Ult_Interacao": Data_Ult_Interacao,
-            "Status": Status,
-            "Data_Nasc": Data_Nasc,
-        }
+#         values = {
+#             "Primeiro_Nome": Primeiro_Nome,
+#             "Ult_Nome": Ult_Nome,
+#             "Data_Registro": Data_Registro,
+#             "DDD": DDD,
+#             "Telefone_Celular": Telefone_Celular,
+#             "Tipo_WhatsApp": Tipo_WhatsApp,
+#             "Data_Ult_Interacao": Data_Ult_Interacao,
+#             "Status": Status,
+#             "Data_Nasc": Data_Nasc,
+#         }
 
-        value_string = transformar_valores_em_string("insert", values)
-        insert_into = f"INSERT INTO {self.nome_tabela} VALUES ({value_string})"
-        executar_comando_sql(insert_into)
+#         value_string = transformar_valores_em_string("insert", values)
+#         insert_into = f"INSERT INTO {self.nome_tabela} VALUES ({value_string})"
+#         executar_comando_sql(insert_into)
 
-    def confirm_status(self, ID_Usuario: str):
-        """Informe o ID_Usuario para confirmar o status"""
+#     def confirm_status(self, ID_Usuario: str):
+#         """Informe o ID_Usuario para confirmar o status"""
 
-        confirm_sql = (
-            f"SELECT * FROM {self.nome_tabela} WHERE ID_Usuario = {ID_Usuario}"
-        )
-        return executar_comando_sql(confirm_sql)[-2]
+#         confirm_sql = (
+#             f"SELECT * FROM {self.nome_tabela} WHERE ID_Usuario = {ID_Usuario}"
+#         )
+#         return executar_comando_sql(confirm_sql)[-2]
 
-    def select(
-        self,
-        categorizacao=str,
-        ID_Usuario: str = None,
-        Data_Registro_desde: str = None,
-        Data_Registro_ate: str = None,
-        DDD: str = None,
-        Telefone_Celular: str = None,
-        Tipo_WhatsApp: str = None,
-        Status: str = None,
-        Data_Nasc: str = None,
-        Data_Ult_Interacao: str = None,
-    ):
-        """
-        Categorização = 'ID', 'Data', 'DDD', 'Telefone', 'Tipo_WhatsApp', 'Status', 'Nasc', 'Ult_Interacao'
-        """
+#     def select(
+#         self,
+#         categorizacao=str,
+#         ID_Usuario: str = None,
+#         Data_Registro_desde: str = None,
+#         Data_Registro_ate: str = None,
+#         DDD: str = None,
+#         Telefone_Celular: str = None,
+#         Tipo_WhatsApp: str = None,
+#         Status: str = None,
+#         Data_Nasc: str = None,
+#         Data_Ult_Interacao: str = None,
+#     ):
+#         """
+#         Categorização = 'ID', 'Data', 'DDD', 'Telefone', 'Tipo_WhatsApp', 'Status', 'Nasc', 'Ult_Interacao'
+#         """
 
-        match categorizacao:
-            case "data":
-                if Data_Registro_desde:
-                    if Data_Registro_ate is None:
-                        Data_Registro_ate = time.strftime(FORMAT_DATA)
+#         match categorizacao:
+#             case "data":
+#                 if Data_Registro_desde:
+#                     if Data_Registro_ate is None:
+#                         Data_Registro_ate = time.strftime(FORMAT_DATA)
 
-                    Data_Registro_desde = f"Data_Registro >= '{Data_Registro_desde}'"
-                    Data_Registro_ate = f"AND Data_Registro <= '{Data_Registro_ate}'"
-                    select_from = f"SELECT * FROM {self.nome_tabela} Where {Data_Registro_desde} {Data_Registro_ate}"
-                    return executar_comando_sql(select_from)
+#                     Data_Registro_desde = f"Data_Registro >= '{Data_Registro_desde}'"
+#                     Data_Registro_ate = f"AND Data_Registro <= '{Data_Registro_ate}'"
+#                     select_from = f"SELECT * FROM {self.nome_tabela} Where {Data_Registro_desde} {Data_Registro_ate}"
+#                     return executar_comando_sql(select_from)
 
-            case "ID":
-                if ID_Usuario:
-                    ID_Usuario = f"ID_Usuario = '{ID_Usuario}'"
-                    select_from = f"SELECT * FROM {self.nome_tabela} Where {ID_Usuario}"
-                    return executar_comando_sql(select_from)
+#             case "ID":
+#                 if ID_Usuario:
+#                     ID_Usuario = f"ID_Usuario = '{ID_Usuario}'"
+#                     select_from = f"SELECT * FROM {self.nome_tabela} Where {ID_Usuario}"
+#                     return executar_comando_sql(select_from)
 
-            case "DDD":
-                if DDD:
-                    DDD = f"DDD = '{DDD}'"
-                    select_from = f"SELECT * FROM {self.nome_tabela} Where {DDD}"
-                    return executar_comando_sql(select_from)
+#             case "DDD":
+#                 if DDD:
+#                     DDD = f"DDD = '{DDD}'"
+#                     select_from = f"SELECT * FROM {self.nome_tabela} Where {DDD}"
+#                     return executar_comando_sql(select_from)
 
-            case "Telefone":
-                if Telefone_Celular:
-                    Telefone_Celular = f"Telefone_Celular = '{Telefone_Celular}'"
-                    select_from = (
-                        f"SELECT * FROM {self.nome_tabela} Where {Telefone_Celular}"
-                    )
-                    return executar_comando_sql(select_from)
+#             case "Telefone":
+#                 if Telefone_Celular:
+#                     Telefone_Celular = f"Telefone_Celular = '{Telefone_Celular}'"
+#                     select_from = (
+#                         f"SELECT * FROM {self.nome_tabela} Where {Telefone_Celular}"
+#                     )
+#                     return executar_comando_sql(select_from)
 
-            case "Tipo_WhatsApp":
-                if Tipo_WhatsApp:
-                    Tipo_WhatsApp = f"Tipo_WhatsApp = '{Tipo_WhatsApp}'"
-                    select_from = (
-                        f"SELECT * FROM {self.nome_tabela} Where {Tipo_WhatsApp}"
-                    )
-                    return executar_comando_sql(select_from)
+#             case "Tipo_WhatsApp":
+#                 if Tipo_WhatsApp:
+#                     Tipo_WhatsApp = f"Tipo_WhatsApp = '{Tipo_WhatsApp}'"
+#                     select_from = (
+#                         f"SELECT * FROM {self.nome_tabela} Where {Tipo_WhatsApp}"
+#                     )
+#                     return executar_comando_sql(select_from)
 
-            case "Status":
-                if Status:
-                    Status = f"Status = '{Status}'"
-                    select_from = f"SELECT * FROM {self.nome_tabela} Where {Status}"
-                    return executar_comando_sql(select_from)
+#             case "Status":
+#                 if Status:
+#                     Status = f"Status = '{Status}'"
+#                     select_from = f"SELECT * FROM {self.nome_tabela} Where {Status}"
+#                     return executar_comando_sql(select_from)
 
-            case "Nasc":
-                if Data_Nasc:
-                    Data_Nasc = f"Data_Nasc = '{Data_Nasc}'"
-                    select_from = f"SELECT * FROM {self.nome_tabela} Where {Data_Nasc}"
-                    return executar_comando_sql(select_from)
+#             case "Nasc":
+#                 if Data_Nasc:
+#                     Data_Nasc = f"Data_Nasc = '{Data_Nasc}'"
+#                     select_from = f"SELECT * FROM {self.nome_tabela} Where {Data_Nasc}"
+#                     return executar_comando_sql(select_from)
 
-            case "Ult_Interacao":
-                if Data_Ult_Interacao:
-                    Data_Ult_Interacao = f"Data_Ult_Interacao = '{Data_Ult_Interacao}'"
-                    select_from = (
-                        f"SELECT * FROM {self.nome_tabela} Where {Data_Ult_Interacao}"
-                    )
-                    return executar_comando_sql(select_from)
+#             case "Ult_Interacao":
+#                 if Data_Ult_Interacao:
+#                     Data_Ult_Interacao = f"Data_Ult_Interacao = '{Data_Ult_Interacao}'"
+#                     select_from = (
+#                         f"SELECT * FROM {self.nome_tabela} Where {Data_Ult_Interacao}"
+#                     )
+#                     return executar_comando_sql(select_from)
 
-    def update(
-        self,
-        ID_Usuario: str,
-        Primeiro_Nome: str = None,
-        Ult_Nome: str = None,
-        Data_Registro: str = None,
-        DDD: str = None,
-        Telefone_Celular: str = None,
-        Tipo_WhatsApp: str = None,
-        Data_Ult_Interacao: str = None,
-        Status: str = "1",
-        Data_Nasc: str = None,
-    ):
-        """ """
+#     def update(
+#         self,
+#         ID_Usuario: str,
+#         Primeiro_Nome: str = None,
+#         Ult_Nome: str = None,
+#         Data_Registro: str = None,
+#         DDD: str = None,
+#         Telefone_Celular: str = None,
+#         Tipo_WhatsApp: str = None,
+#         Data_Ult_Interacao: str = None,
+#         Status: str = "1",
+#         Data_Nasc: str = None,
+#     ):
+#         """ """
 
-        columns_dict = {
-            "ID_Usuario": ID_Usuario,
-            "Primeiro_Nome": Primeiro_Nome,
-            "Ult_Nome": Ult_Nome,
-            "Data_Registro": Data_Registro,
-            "DDD": DDD,
-            "Telefone_Celular": Telefone_Celular,
-            "Tipo_WhatsApp": Tipo_WhatsApp,
-            "Data_Ult_Interacao": Data_Ult_Interacao,
-            "Status": Status,
-            "Data_Nasc": Data_Nasc,
-        }
+#         columns_dict = {
+#             "ID_Usuario": ID_Usuario,
+#             "Primeiro_Nome": Primeiro_Nome,
+#             "Ult_Nome": Ult_Nome,
+#             "Data_Registro": Data_Registro,
+#             "DDD": DDD,
+#             "Telefone_Celular": Telefone_Celular,
+#             "Tipo_WhatsApp": Tipo_WhatsApp,
+#             "Data_Ult_Interacao": Data_Ult_Interacao,
+#             "Status": Status,
+#             "Data_Nasc": Data_Nasc,
+#         }
 
-        set_string = transformar_valores_em_string("update", columns_dict)
+#         set_string = transformar_valores_em_string("update", columns_dict)
 
-        sql_string = f"UPDATE {self.nome_tabela} SET {set_string} WHERE ID_Usuario = {ID_Usuario}"
+#         sql_string = f"UPDATE {self.nome_tabela} SET {set_string} WHERE ID_Usuario = {ID_Usuario}"
 
-        executar_comando_sql(sql_string)
+#         executar_comando_sql(sql_string)
 
 
 class Formatos:
