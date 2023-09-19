@@ -299,11 +299,11 @@ class Parceiros:
         """Informe o ID_Parceiro ou Nome_Parceiro para confirmar"""
         if ID_Parceiro:
             select_from = f"SELECT Nome_Parceiro FROM Parceiros WHERE ID_Parceiro = '{ID_Parceiro}' AND Status = '{Status}'"
-            return executar_comando_sql(select_from)
+            return executar_comando_sql(select_from)[0][0]
 
         elif Nome_Parceiro:
             select_from = f"SELECT ID_Parceiro FROM Parceiros WHERE Nome_Parceiro = '{Nome_Parceiro}' AND Status = '{Status}'"
-            return executar_comando_sql(select_from)
+            return executar_comando_sql(select_from)[0][0]
 
         else:
             return None

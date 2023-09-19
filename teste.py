@@ -1,12 +1,10 @@
-from SCRIPTS.sql_fiodameada import Noticias, connect_db
+from SCRIPTS.integracao import Auth_SendPulse
 
 
-connect_db()
-noticias = Noticias().select(
-    formato="qtd_noticias",
-    qtd_noticias=3,
-    contact_id=123,
-    preferencias_id=(1, 2, 2),
-)
+API = Auth_SendPulse()
+preferencias = API.get_preferencias("6500e99d564ffa8cf10d994f")
 
-print(noticias)
+print(preferencias["data"]["tags"])
+
+
+# print(API.get_preferencias("6500e99d564ffa8cf10d994f"))

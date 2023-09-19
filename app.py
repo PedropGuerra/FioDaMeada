@@ -8,6 +8,8 @@ from SCRIPTS.integracao import Envio, formatacao_html, Auth_SendPulse
 import concurrent.futures
 from threading import Thread
 import random
+import json
+
 
 app = Flask(__name__)
 
@@ -313,174 +315,121 @@ def confirmar_envios():
 # utilizar alguns workers para enviar mais ao mesmo tempo
 
 
-@app.route("/formatacao/", methods=["GET"])
-def get_formatacao():
-    return_value = {
-        "noticias": {},
-        "gabarito": {},
-    }
-    rodadas = {}
-
-    contact_id = request.args.get("contact_id")
-    qtd_noticias = int(request.args.get("qtd_noticias"))
-    qtd_fakenews = int(request.args.get("qtd_fakenews"))
-    qtd_rodadas = int(request.args.get("qtd_rodadas")) if qtd_fakenews else 0
-
-    # API_SendPulse = Auth_SendPulse()
-    # preferencias_id: tuple = API_SendPulse.get_preferencias(contact_id)
-    preferencias_id = (1, 2, 2)
-
-    noticias = SQL.Noticias().select(
-        formato="qtd_noticias",
-        qtd_noticias=qtd_noticias,
-        contact_id=contact_id,
-        preferencias_id=preferencias_id,
-    )
-    fakenews = SQL.Noticias().select(
-        formato="qtd_fakenews",
-        qtd_fakenews=qtd_fakenews,
-        contact_id=contact_id,
-        preferencias_id=preferencias_id,
-    )
-    # print(f"Noticias : {noticias}")
-    # print(f"Fake : {fakenews}")
-
-    if qtd_rodadas:
-        # Refazer o sistema de rodadas e gabarito (acho que o tanto de FOR está atrapalhando)
-        # Deveriam existir 6 noticias e 3 fake news, porém retornam apenas 3
-        # Considerar condições que não existam noticias ou fake news
-        # O código precisa estar mais organizado e escalável
-        # Apesar das coisas ruins, este é o melhor caminho
-        noticias_rodada = qtd_noticias // int(qtd_rodadas)
-        fakenews_rodada = qtd_fakenews // int(qtd_rodadas)
-        i_utilizado = []
-
-        for rodada in range(qtd_rodadas):
-            rodada += 1
-            rodadas[f"rodada{rodada}"] = []
-
-        for rodada in rodadas.values():
-            diferente = False
-
-            while diferente == False:
-                choices_noticia = random.sample(noticias, noticias_rodada)
-                choices_fake = random.sample(fakenews, fakenews_rodada)
-                intersection = set(choices_noticia) | set(choices_fake)
-
-                if len(intersection & set(i_utilizado)) == 0:
-                    diferente = True
-
-            for choice in choices_noticia:
-                rodada.append(choice)
-                i_utilizado.append(choice)
-
-            for choice in choices_fake:
-                rodada.append(choice)
-                i_utilizado.append(choice)
-
-        for i, rodada in enumerate(rodadas.values()):
-            with open("rodadas.json", "w+") as txt:
-                txt.write(SQL.dict_to_json(rodadas))
-
-            # with open("rodada.txt", "w+") as txt:
-            #     txt.write(rodada)
-
-            for fake in rodada[fakenews_rodada * -1]:
-                return_value["gabarito"] = {f"rodada{i}": fake}  # id_fake
-
-            random.shuffle(rodada)
-
-            for noticia in rodada:
-                return_value["noticias"][f"noticia{i}"] = {
-                    "id": noticia[0],
-                    "fake": noticia[5],
-                    "headline": noticia[3],
-                    "resumo": noticia[4],
-                    "link": noticia[2],
-                    "parceiro": SQL.Parceiros().confirm(ID_Parceiro=noticia[1]),
-                }
-
-    elif qtd_noticias and not qtd_fakenews:
-        for i, noticia in enumerate(noticias):
-            return_value["noticias"][f"noticia{1}"] = {
-                "id": noticia[0],
-                "fake": noticia[5],
-                "headline": noticia[3],
-                "resumo": noticia[4],
-                "link": noticia[2],
-                "parceiro": SQL.Parceiros().confirm(ID_Parceiro=noticia[1]),
-            }
-
-    elif qtd_fakenews and not qtd_noticias:
-        for i, fake in enumerate(fakenews):
-            return_value["noticias"][f"noticia{i}"] = {
-                "id": noticia[0],
-                "fake": fake[5],
-                "headline": fake[3],
-                "resumo": noticia[4],
-                "link": fake[2],
-                "parceiro": SQL.Parceiros().confirm(ID_Parceiro=fake[1]),
-            }
-
-    # with concurrent.futures.ThreadPoolExecutor() as executor:
-    #     executor.submit(
-    #         SQL.Noticias().noticias_usuario,
-    #         contact_id,
-    #         list(set(noticias) | set(fakenews)),
-    #     )
-
-    return return_value
-
-
-# código criado pelo ChatGPT
-# É PRECISO INTEGRAR BANCO DE DADOS
-# FORMAS DE TRANSFORMAR O SELECT DE NOTICIAS EM UM DICT ORGANIZADO
 @app.route("/api/noticias", methods=["GET"])
 def get_noticias():
     # Obtém os parâmetros da requisição
-    contact_id = request.args.get("contact_id")
-    qtd_noticias = int(request.args.get("qtd_noticias"))
-    qtd_fakenews = int(request.args.get("qtd_fakenews"))
-    qtd_rodadas = int(request.args.get("qtd_rodadas"))
+    args = request.args.get
 
-    # Aqui, você deve se conectar ao seu banco de dados e buscar as notícias e fake news
-    # Substitua isso com sua lógica de consulta ao banco de dados
-    noticias = [
-        {
-            "id": 1,
-            "fake": 0,
-            "headline": "Notícia 1",
-            "resumo": "Resumo da Notícia 1",
-            "link": "http://noticia1.com",
-            "parceiro": "Parceiro 1",
-        },
-        {
-            "id": 2,
-            "fake": 1,
-            "headline": "Fake News 1",
-            "resumo": "Resumo da Fake News 1",
-            "link": "http://fakenews1.com",
-            "parceiro": "Parceiro 2",
-        },
-        # Adicione mais notícias e fake news conforme necessário
-    ]
+    contact_id = args("contact_id")
+    if not contact_id:
+        return Response("error", status=400)
 
-    # Cria o objeto JSON de resposta
-    response = {"Noticias": {}}
+    qtd_noticias = int(args("qtd_noticias")) if args("qtd_noticias") else None
+    qtd_fakenews = int(args("qtd_fakenews")) if args("qtd_fakenews") else None
+    qtd_rodadas = int(args("qtd_rodadas")) if args("qtd_rodadas") else None
+    producao = args("producao") if args("producao") else None
 
-    # Preenche o objeto JSON de resposta com as notícias e fake news
-    for i, noticia in enumerate(noticias[: qtd_noticias + qtd_fakenews]):
-        tipo = "noticia"
-        response["Noticias"][f"{tipo}{i + 1}"] = {
-            "id": noticia["id"],
-            "fake": noticia["fake"],
-            "headline": noticia["headline"],
-            "resumo": noticia["resumo"],
-            "link": noticia["link"],
-            "parceiro": noticia["parceiro"],
+    API_SendPulse = Auth_SendPulse()
+    preferencias_id = API_SendPulse.get_preferencias(contact_id)
+
+    condicoes_dict = {
+        "rodadas+noticias+fake": qtd_rodadas and qtd_fakenews and qtd_noticias,
+        "only_noticias": qtd_noticias and not qtd_fakenews,
+        "only_fake": qtd_fakenews and not qtd_noticias,
+        "fake+rodadas": qtd_fakenews and qtd_noticias and not qtd_rodadas,
+    }
+
+    def formatacao_dict(noticia):
+        return {
+            "id": noticia[0],
+            "fake": noticia[5],
+            "headline": noticia[3],
+            "resumo": noticia[4],
+            "link": noticia[2],
+            "parceiro": SQL.Parceiros().confirm(ID_Parceiro=noticia[1]),
         }
 
-    return jsonify(response)
+    db_noticias = list(
+        map(
+            formatacao_dict,
+            SQL.Noticias().select(
+                formato="qtd_noticias",
+                qtd_noticias=qtd_noticias,
+                contact_id=contact_id,
+                preferencias_id=preferencias_id,
+            ),
+        )
+    )
+
+    db_fakenews = list(
+        map(
+            formatacao_dict,
+            SQL.Noticias().select(
+                formato="qtd_fakenews",
+                qtd_fakenews=qtd_fakenews,
+                contact_id=contact_id,
+                preferencias_id=preferencias_id,
+            ),
+        )
+    )
+    resp_noticias = {}
+    resp_gabarito = {}
+    response = {"Noticias": resp_noticias, "Gabarito": resp_gabarito}
+
+    if condicoes_dict["rodadas+noticias+fake"]:
+        for rodada in range(1, qtd_rodadas + 1):
+            noticias_por_rodada = min(qtd_noticias // qtd_rodadas, len(db_noticias))
+            fakenews_por_rodada = min(qtd_fakenews // qtd_rodadas, len(db_fakenews))
+            print(f"noticias_por_rodada : {noticias_por_rodada}")
+            print(f"fakenews_por_rodada : {fakenews_por_rodada}")
+
+            rodada_noticias = random.sample(
+                db_fakenews, fakenews_por_rodada
+            ) + random.sample(db_noticias, noticias_por_rodada)
+            random.shuffle(rodada_noticias)
+            print(f"rodada_noticias : {rodada_noticias}")
+
+            for i, noticia in enumerate(rodada_noticias):
+                resp_noticias[f"noticia{i + 1}"] = noticia
+                if noticia["fake"] == 1:
+                    resp_gabarito[f"rodada{i+1}"] = noticia["id"]
+
+    elif condicoes_dict["only_noticias"]:
+        for i, noticia in enumerate(noticias):
+            response["Noticias"][f"noticia{i + 1}"] = noticia
+
+    elif condicoes_dict["only_fake"]:
+        for i, fake in enumerate(fakenews):
+            response["Noticias"][f"noticia{i + 1}"] = fake
+
+    elif condicoes_dict["fake+rodadas"]:
+        # juncao_noticias_fakenews = {}
+        # juncao_noticias_fakenews.update(db_noticias)
+        # juncao_noticias_fakenews.update(db_fakenews)
+
+        for i, noticia in enumerate(db_noticias + db_fakenews):
+            match noticia["fake"]:
+                case 1:
+                    resp_noticias[f"fakenews{i+1}"] = noticia
+                    resp_gabarito[i + 1] = noticia["id"]
+
+                case 0:
+                    resp_noticias[f"noticia{i+1}"] = noticia
+
+    else:
+        return Response("error", status=400)
+
+    if producao:
+
+        def atualizar_noticias(db_noticias, db_fakenews, contact_id):
+            ids_noticias = [noticia["id"] for noticia in db_noticias + db_fakenews]
+            SQL.Noticias().noticias_usuario(contact_id, ids_noticias)
+
+        Thread(
+            target=atualizar_noticias, args=(db_noticias, db_fakenews, contact_id)
+        ).start()
+
+    return response
 
 
 # @app.route("/formatacao_manual")
@@ -489,4 +438,5 @@ def get_noticias():
 
 
 if __name__ == "__main__":
+    SQL.connect_db()
     app.run(debug=True)

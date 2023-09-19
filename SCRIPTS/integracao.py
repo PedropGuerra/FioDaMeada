@@ -18,6 +18,9 @@ Definir formatos das notícias (Web App HTML)
 
 """
 
+CLIENT_ID = "ee842a8007e7a34e290dc77fc984df78"
+CLIENT_SECRET = "2ef059710b021d02111b97b8a28c044f"
+
 
 def replace_space(text: str, replacements: dict):
     for to_replace in replacements:
@@ -28,40 +31,53 @@ def replace_space(text: str, replacements: dict):
     return text
 
 
-def formatacao_html(noticias, html_format) -> dict:
-    replacements = {"{data}": strftime("%d/%m/%Y")}
-    for i, noticia in enumerate(noticias):
-        i += 1
-        replacements[f"noticia{i}"] = noticia[3]
-        replacements[f"link{i}"] = noticia[2]
-    return replace_space(html_format, replacements)
+# def formatacao_html(noticias, html_format) -> dict:
+#     replacements = {"{data}": strftime("%d/%m/%Y")}
+#     for i, noticia in enumerate(noticias):
+#         i += 1
+#         replacements[f"noticia{i}"] = noticia[3]
+#         replacements[f"link{i}"] = noticia[2]
+#     return replace_space(html_format, replacements)
 
 
 class Auth_SendPulse:
     def __init__(self) -> None:
-        # self.auth(client_id, client_secret)
-        pass
+        self.default_api_link = "https://api.sendpulse.com/telegram"
+        self.access_token = ""
+        self.auth()
 
-    # def req_auth(self) -> None:
-    #     # REST_API_ID = "ee842a8007e7a34e290dc77fc984df78"
-    #     # REST_API_SECRET = "2ef059710b021d02111b97b8a28c044f"
-
-    #     # SendPulse_Api = Auth_SendPulse(REST_API_ID, REST_API_SECRET)
-
-    def auth(self, client_id, client_secret):
+    def auth(self):
         data = {
             "grant_type": "client_credentials",
-            "client_id": client_id,
-            "client_secret": client_secret,
+            "client_id": CLIENT_ID,
+            "client_secret": CLIENT_SECRET,
         }
 
-        return requests.post(
+        request = requests.post(
             "https://api.sendpulse.com/oauth/access_token", data=data
         ).json()
 
-    def publicar_envios(self) -> None:
-        pass
-        # , contatos: list, mensagem: str
+        self.access_token = request["access_token"]
+
+    def get_preferencias(self, contact_id: str):
+        header = {
+            "Authorization": f"Bearer {self.access_token}",
+            "Content-Type": "application/json",
+        }
+        request = requests.get(
+            self.default_api_link + "/contacts/get",
+            params={"id": contact_id},
+            headers=header,
+        ).json()
+
+        if len(request["data"]["tags"]) >= 1:
+            return map(
+                lambda tag: Preferencia_Usuarios().confirm(Nome_Preferencia=tag),
+                request["data"]["tags"],
+            )
+
+        else:
+            return None
 
 
 class Envio:
@@ -168,10 +184,6 @@ class Envio:
         #     # REST_API_ID = "ee842a8007e7a34e290dc77fc984df78"
         #     # REST_API_SECRET = "2ef059710b021d02111b97b8a28c044f"
         # BOT_ID = "6500e98627d2d8922a07a065"
-
-
-class Formatos:
-    pass
 
 
 #     # SendPulse_Api = Auth_SendPulse(REST_API_ID, REST_API_SECRET)
