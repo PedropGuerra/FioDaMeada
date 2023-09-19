@@ -90,9 +90,9 @@ class Envio:
         self.flow = formatos_info[4]
         return formatos_info[2]
 
-    def atualizar_status_noticias(self) -> None:
-        for id_noticia in self.noticias:
-            Noticias().update(ID_Noticia=id_noticia, Status=3)  # status programado
+    # def atualizar_status_noticias(self) -> None:
+    #     for id_noticia in self.noticias:
+    #         Noticias().update(ID_Noticia=id_noticia, Status=1)  # status programado
 
     def selecionar_noticias(self, qtd: int):
         noticias = self.importar_noticias()
@@ -164,10 +164,15 @@ class Envio:
             "external_data": external_data,
         }
 
+        # if __name__ == "__main__":
+        #     # REST_API_ID = "ee842a8007e7a34e290dc77fc984df78"
+        #     # REST_API_SECRET = "2ef059710b021d02111b97b8a28c044f"
+        # BOT_ID = "6500e98627d2d8922a07a065"
 
-# if __name__ == "__main__":
-#     # REST_API_ID = "ee842a8007e7a34e290dc77fc984df78"
-#     # REST_API_SECRET = "2ef059710b021d02111b97b8a28c044f"
+
+class Formatos:
+    pass
+
 
 #     # SendPulse_Api = Auth_SendPulse(REST_API_ID, REST_API_SECRET)
 
