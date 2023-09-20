@@ -431,6 +431,8 @@ class Noticias:
         Data_Publicacao_Parceiro: str,
         Data_Registro_DB: str = time.strftime(FORMAT_DATA),
         Status: str = "0",
+        Fake: str = "0",
+        Fake_Local: str = None,
     ) -> None:
         """
         char(15)
@@ -447,6 +449,8 @@ class Noticias:
             "Data_Publicacao_Parceiro": Data_Publicacao_Parceiro,
             "Data_Registro_DB": Data_Registro_DB,
             "Status": Status,
+            "Fake" : Fake,
+            "Fake_Local" : Fake_Local,
         }
 
         values_string = transformar_valores_em_string("insert", values)
@@ -520,7 +524,7 @@ class Noticias:
                 limit_random_noticia = f" ORDER BY RAND() LIMIT {qtd_noticias}"
                 limit_random_fake = f" ORDER BY RAND() LIMIT {qtd_fakenews}"
 
-                cols_to_select = "n.ID_Noticia, n.ID_Parceiro, n.Link_Publicacao, n.Headline_Publicacao, n.Resumo_Publicacao, n.Fake"
+                cols_to_select = "n.ID_Noticia, n.ID_Parceiro, n.Link_Publicacao, n.Headline_Publicacao, n.Resumo_Publicacao, n.Fake, n.Fake_Local"
                 select_from = (
                     f"SELECT DISTINCT {cols_to_select} from {self.nome_tabela} as n"
                 )

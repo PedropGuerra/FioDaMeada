@@ -211,7 +211,6 @@ def associacao_noticias():
                 Preferências<select name="{noticia[0]}" multiple>
                 <{options_pref_string}
                 </select>
-                <br>
                 """
 
             today = date.today() - timedelta(days=30)
@@ -290,6 +289,7 @@ def get_noticias():
             "resumo": noticia[4],
             "link": noticia[2],
             "parceiro": SQL.Parceiros().confirm(ID_Parceiro=noticia[1]),
+            "fake_local" : noticia[6],
         }
 
     db_noticias = list(
@@ -335,7 +335,7 @@ def get_noticias():
             for i, noticia in enumerate(rodada_noticias):
                 resp_noticias[f"noticia{i + 1}"] = noticia
                 if noticia["fake"] == 1:
-                    resp_gabarito[f"rodada{i+1}"] = noticia["id"]
+                    resp_gabarito[f"rodada{i+1}"] = {"id" : noticia["id"], "local" : noticia["fake_local"]}
 
     elif condicoes_dict["only_noticias"]:
         for i, noticia in enumerate(noticias):
@@ -354,7 +354,7 @@ def get_noticias():
             match noticia["fake"]:
                 case 1:
                     resp_noticias[f"fakenews{i+1}"] = noticia
-                    resp_gabarito[i + 1] = noticia["id"]
+                    resp_gabarito[i + 1] = {"id" : noticia["id"], "local" : noticia["fake_local"]}
 
                 case 0:
                     resp_noticias[f"noticia{i+1}"] = noticia
@@ -377,5 +377,4 @@ def get_noticias():
 
 
 if __name__ == "__main__":
-    # SQL.connect_db()
     app.run(debug=True)
