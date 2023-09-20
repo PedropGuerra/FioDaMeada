@@ -4,7 +4,7 @@ from flask import *
 from dateutil.relativedelta import relativedelta
 import SCRIPTS.sql_fiodameada as SQL
 import SCRIPTS.Script_Crawl as Script_Crawl
-from SCRIPTS.integracao import Envio, formatacao_html, Auth_SendPulse
+from SCRIPTS.integracao import Envio, Auth_SendPulse
 import concurrent.futures
 from threading import Thread
 import random
@@ -12,6 +12,7 @@ import json
 
 
 app = Flask(__name__)
+
 
 error = None
 
@@ -52,30 +53,58 @@ def html_tags(link: str) -> str:
 
     return html_string
 
+def has_no_empty_params(rule):
+    defaults = rule.defaults if rule.defaults is not None else ()
+    arguments = rule.arguments if rule.arguments is not None else ()
 
-@app.route("/", methods=["POST", "GET"])
+    return len(defaults) >= len(arguments)
+
+def site_map_route():
+    routes = []
+
+    for rule in app.url_map.iter_rules():
+        # Exclude rules that require parameters and rules you can't open in a browser
+        if "GET" in rule.methods and has_no_empty_params(rule):
+            url = url_for(rule.endpoint, **(rule.defaults or {}))
+            routes.append((url, rule.endpoint))
+
+    return routes
+
+@app.route("/admin")
+def red_login():
+    return redirect(url_for("login"))
+
+@app.route("/admin/login", methods=["POST", "GET"])
 def login():
     if request.method == "POST":
         SQL.connect_db(user=request.form["user"], password=request.form["password"])
 
-        return redirect(url_for("hub"))
+        resp = make_response(redirect(url_for("hub")))
+        resp.set_cookie("login", request.form["user"])
+        resp.set_cookie("password", request.form["password"])
+
+        return resp
 
     else:
         return render_template("login.html", error=error)
 
-
-@app.route("/hub")
+@app.route("/admin/hub")
 def hub():
-    hub_string = f"""
-    <a href="{url_for("cadastro")}">Cadastro Parceiro</a> <br>
-    <a href="{url_for("script")}">Script Raspagem Notícias (Manual)</a> <br>
-    <a href="{url_for("associacao_noticias")}">Associar Preferências às Notícias (Manual)</a> <br>
-    <a href="{url_for("criar_envios")}">Criar Novos Envios (Manual)</a> <br>
-    """
+    routes = site_map_route()
+    hub_string = f""""""
+
+    for route in routes:
+        if "login" in route[0] or "hub" in route[0]:
+            continue
+        route = route[1]
+        hub_string += f"""
+        <a href="{url_for(f"{route}")}">{route}</a> <br>
+        """
     return hub_string
 
 
-@app.route("/cadastro_parceiro", methods=["POST", "GET"])
+
+@app.route("/admin/cadastro_parceiro", methods=["POST", "GET"])
 def cadastro():
     parceiros = SQL.Parceiros()
     if request.method == "POST":
@@ -116,7 +145,7 @@ def cadastro():
     return render_template("cadastro.html", error=error)
 
 
-@app.route("/associacao_noticias", methods=["POST", "GET"])
+@app.route("/admin/associacao_noticias", methods=["POST", "GET"])
 def associacao_noticias():
     if request.method == "POST":
         request_return = request.form.to_dict(flat=False)
@@ -214,105 +243,39 @@ def associacao_noticias():
 
         return noticias_string
 
-
-@app.route("/script")
+@app.route("/api/script")
 def script():
     Script_Crawl.FioDaMeada_Script_Crawling()
     return "Success"
 
 
-@app.route("/criar_envios")
-def criar_envios():
-    # criar envios em um loop por preferencia
-    # é preciso criar todos os formatos da semana por cada preferencia
-    # importar todos os formatos e preferencias e fazer um for loop
+@app.route("/api/mensagens/enviar/<dia_semana>")
+def enviar_mensagens(dia_semana):
+    try:
+        API_SendPulse = Auth_SendPulse()
+        contatos = API_SendPulse.get_contatos()
 
-    formatos = SQL.Formatos().select(categorizacao="todos")
-    print(formatos)
-    preferencias = SQL.Preferencia_Usuarios().select()
-    print(preferencias)
-
-    def worker(preferencias, formatos):
-        print("começando o worker")
-        envios = {}
-        for pref in preferencias:
-            for formato in formatos:
-                envio = Envio(formato=formato, preferencia_usuarios=pref)
-                envio.criar()
-                envios[envio.id_envio] = envio
-                print(f"envio {envio.id_envio}\n pref:{pref}\nformat:{formato}")
-
-        # for envio in envios.keys():
-        #     print("atualizando status")
-        #     envio.atualizar_status_noticias()
-
-    print("começando a criar")
-    # Thread(target=worker, args=(preferencias, formatos)).start()
-
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        results = executor.submit(worker, preferencias, formatos)
-    return "Success"
+        flow = SQL.Formatos().select(categorizacao="dia", Dia_Semana=dia_semana)
 
 
-@app.route("/confirmar_envios", methods=["POST", "GET"])
-def confirmar_envios():
-    if request.method == "POST":
-        # Auth_SendPulse().publicar_envios()
-        # request_return = request.form.to_dict(flat=False)
-        pass
+        tamanho_thread = len(contatos) // 3
+        grupos = {1 : contatos[0:tamanho_thread], 2 : contatos[tamanho_thread : tamanho_thread * 2], 3: contatos[tamanho_thread * 2 : tamanho_thread * 3]}
 
-    else:
-        envios = SQL.Envios().select()
-        noticias = [envio[2] for envio in envios]
-        noticias = SQL.Noticias().select(formato="IDs", IDs_Noticias=noticias)
+        if len(contatos) - tamanho_thread * 3 != 0:
+            de = tamanho_thread * 3
+            ate = de + len(contatos) - tamanho_thread * 3
+            grupos[4] = contatos[de:ate]
 
-        envios_string = """<form method="post">
-        <input type="submit" value="Enviar">"""
-
-        for envio in envios:
-            formato = SQL.Formatos().select(categorizacao="id", ID_Formato=envio[3])
-            envios_string += f"""
-            {formatacao_html(noticias=noticias, html_format= formato)}
-            <select name="{envio[0]}">
-                <option value="Aprovado"></option>
-                <option value="Repovado"></option>
-            </select>
-            <br>
-            """
-        return envios_string
+        for grupo in grupos.values():
+            Thread(target=API_SendPulse.run_flows, args=(flow, grupo)).start()
 
 
-# @app.route("/enviar_mensagens/<dia_semana>")
-# def enviar_mensagens(dia_semana):
-#     envios_confirmados = SQL.Envios().select(
-#         categorizacao="confirmados/dia", dia_semana=dia_semana
-#     )
-#     # API_SendPulse = Auth_SendPulse().auth()
-#     # bots = API_SendPulse.get_bots()
+        SQL.Envios().insert(Dia_Semana=dia_semana, Data_Criacao=time.strftime(SQL.FORMAT_DATA))
 
-#     # Divide a quantidade de envios por 3
-#     # Atribui os as quantidades para os 3 threads
-#     # Caso sobre alguma requisição, é atribuida ao 4 thread
-#     tamanho_thread = len(envios_confirmados) // 3
-#     grupo_req1 = envios_confirmados[0:tamanho_thread]
-#     grupo_req2 = envios_confirmados[tamanho_thread : tamanho_thread * 2]
-#     grupo_req3 = envios_confirmados[tamanho_thread * 2 : tamanho_thread * 3]
+        return Response("Success", status=200)
 
-#     if len(envios_confirmados) - tamanho_thread * 3 != 0:
-#         de = tamanho_thread * 3
-#         ate = de + len(envios_confirmados) - tamanho_thread * 3
-#         grupo_req4 = envios_confirmados[de:ate]
-
-#     def enviar_req(requisicoes):
-#         for req in requisicoes:
-
-
-# puxar todas os envios confirmados com o dia da semana correspondente (ok)
-# puxar a autenticacao da SendPulse (ok)
-# puxar todos os bots -> contatos (ok)
-# confirmar todas as requisições
-# dividir as requisições para utilizar em diferentes workerss
-# utilizar alguns workers para enviar mais ao mesmo tempo
+    except:
+        return Response("Error", status=400)
 
 
 @app.route("/api/noticias", methods=["GET"])
@@ -432,11 +395,7 @@ def get_noticias():
     return response
 
 
-# @app.route("/formatacao_manual")
-# def formatacao_manual():
-#     pass
-
 
 if __name__ == "__main__":
-    SQL.connect_db()
+    # SQL.connect_db()
     app.run(debug=True)

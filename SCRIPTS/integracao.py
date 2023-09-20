@@ -44,6 +44,11 @@ class Auth_SendPulse:
     def __init__(self) -> None:
         self.default_api_link = "https://api.sendpulse.com/telegram"
         self.access_token = ""
+        self.header = {
+            "Authorization": f"Bearer {self.access_token}",
+            "Content-Type": "application/json",
+        }
+
         self.auth()
 
     def auth(self):
@@ -60,14 +65,10 @@ class Auth_SendPulse:
         self.access_token = request["access_token"]
 
     def get_preferencias(self, contact_id: str):
-        header = {
-            "Authorization": f"Bearer {self.access_token}",
-            "Content-Type": "application/json",
-        }
         request = requests.get(
             self.default_api_link + "/contacts/get",
             params={"id": contact_id},
-            headers=header,
+            headers=self.header,
         ).json()
 
         if len(request["data"]["tags"]) >= 1:
@@ -78,6 +79,27 @@ class Auth_SendPulse:
 
         else:
             return None
+
+    def get_contatos(self):
+        preferencias = map(lambda pref : pref[1],Preferencia_Usuarios().select())
+        url = self.default_api_link + "/contacts/getByTag"
+        contatos = []
+
+        for pref in preferencias:
+            request = requests.get(url, params={"tag" : pref}, headers = self.header)
+            contatos_temp = map(lambda contact : contatos.append(contact["id"]), request["data"])
+
+        return contatos
+
+
+    def run_flows(self, flow_id: str, contacts: list) -> None:
+        url = self.default_api_link + "/flows/run"
+
+        for contact in contacts:
+            params = {"contact_id" : contact_id,"flow_id" : flow_id}
+            requests.post(url, params=params, headers=self.header)
+
+
 
 
 class Envio:

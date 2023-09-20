@@ -1,10 +1,15 @@
-from SCRIPTS.integracao import Auth_SendPulse
+from decorator import decorator
+
+@decorator
+def workaround_decorator(f, *args, **kwargs):
+    f(*args, **kwargs)
+    if args[1] == 2:
+        print('The second argument is 2!')
+
+@workaround_decorator
+def my_func(arg1, arg2, kwarg1=None):
+    print('arg1: {} arg2: {}, kwargs: {}'.format(arg1, arg2, kwarg1))
 
 
-API = Auth_SendPulse()
-preferencias = API.get_preferencias("6500e99d564ffa8cf10d994f")
 
-print(preferencias["data"]["tags"])
-
-
-# print(API.get_preferencias("6500e99d564ffa8cf10d994f"))
+my_func(1,2)
