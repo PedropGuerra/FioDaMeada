@@ -6,6 +6,7 @@ from SCRIPTS.sql_fiodameada import (
     json_to_dict,
     FORMAT_DATA,
 )
+from SCRIPTS.integracao import Auth_SendPulse
 
 
 class FioDaMeada_Script_Crawling:
@@ -13,13 +14,16 @@ class FioDaMeada_Script_Crawling:
         self.queue: dict = {}
         self.logica_script()
 
-    def logica_script(self) -> None:
+    def logica_script(self):
         info_raspagem = self.import_info_raspagem()
         if not info_raspagem:
-            print("Sem Parceiros Disponíveis")
-            exit()
+            return "SemParceiros"
         self.add_in_queue(info_raspagem)
         self.import_noticias()
+        self.sync_formatos()
+
+        return 200
+
 
     def import_info_raspagem(self):
         connect_db()
@@ -51,12 +55,6 @@ class FioDaMeada_Script_Crawling:
             # tag_resumo = feed["tags_html"]["Resumo"]
 
             for entrie in feed_link_parse.entries:
-                # feed["noticias"][i] = {
-                #     "Headline": getattr(entrie, tag_headline),
-                #     "Text": getattr(entrie, tag_texto),
-                #     "Resumo": getattr(entrie, tag_resumo),
-                #     "Data": entrie.published,
-                # }
 
                 Noticias().insert(
                     ID_Parceiro=ID_Parceiro,
@@ -68,3 +66,8 @@ class FioDaMeada_Script_Crawling:
                     ),
                 )
             Parceiros().update_ult_raspagem(ID_Parceiro)
+
+
+    def sync_formatos(self):
+        API = Auth_SendPulse()
+        API.sync_formatos()

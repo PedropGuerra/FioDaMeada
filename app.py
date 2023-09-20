@@ -3,8 +3,8 @@ import feedparser
 from flask import *
 from dateutil.relativedelta import relativedelta
 import SCRIPTS.sql_fiodameada as SQL
+from SCRIPTS.integracao import Auth_SendPulse
 import SCRIPTS.Script_Crawl as Script_Crawl
-from SCRIPTS.integracao import Envio, Auth_SendPulse
 import concurrent.futures
 from threading import Thread
 import random
@@ -156,16 +156,8 @@ def associacao_noticias():
                 continue
 
             for id_pref in request_return[id_noticia]:
-                # Valor concatenado com "f" é formato, senão preferência
                 if id_pref == "":
                     continue
-
-                elif "f" in id_pref:
-                    # Noticias_Formatos().insert(id_noticia, id_pref)
-                    formato = id_pref.removesuffix("f")
-                    SQL.Noticias().insert_formato(
-                        ID_Formato=formato, ID_Noticia=id_noticia
-                    )
 
                 else:
                     SQL.Noticias().insert_preferencia(
@@ -187,8 +179,6 @@ def associacao_noticias():
 
         noticias = [None]
         preferencias = SQL.Preferencia_Usuarios().select()
-        # formatos = Formatos().select()
-        formatos = SQL.Formatos().select(categorizacao="todos")
 
         for i, option in enumerate(preferencias):
             id_pref, option = option
@@ -200,16 +190,10 @@ def associacao_noticias():
                 <option value="Inutilizar">Inutilizar</option>
                 """
 
-        for i, formato in enumerate(formatos):
-            id_format, formato = formato
-            options_format_string += f"""
-            <option value="{id_format}f">{formato}</option>
-            """
-
         # print(len(noticias))
         while len(noticias) != 0:
             noticias = SQL.Noticias().select(
-                categorizacao="associacao",
+                formato="associacao",
                 data_desde=str(data_desde),
                 data_ate=str(data_ate),
             )
@@ -227,9 +211,6 @@ def associacao_noticias():
                 Preferências<select name="{noticia[0]}" multiple>
                 <{options_pref_string}
                 </select>
-                Formatos<select name="{noticia[0]}">
-                <{options_format_string}
-                </select>
                 <br>
                 """
 
@@ -246,7 +227,7 @@ def associacao_noticias():
 @app.route("/api/script")
 def script():
     Script_Crawl.FioDaMeada_Script_Crawling()
-    return "Success"
+    return Response(status = 200)
 
 
 @app.route("/api/mensagens/enviar/<dia_semana>")
@@ -255,7 +236,7 @@ def enviar_mensagens(dia_semana):
         API_SendPulse = Auth_SendPulse()
         contatos = API_SendPulse.get_contatos()
 
-        flow = SQL.Formatos().select(categorizacao="dia", Dia_Semana=dia_semana)
+        flow = SQL.SendPulse_Flows().select(categorizacao="dia", Dia_Semana=dia_semana)
 
 
         tamanho_thread = len(contatos) // 3
@@ -270,7 +251,7 @@ def enviar_mensagens(dia_semana):
             Thread(target=API_SendPulse.run_flows, args=(flow, grupo)).start()
 
 
-        SQL.Envios().insert(Dia_Semana=dia_semana, Data_Criacao=time.strftime(SQL.FORMAT_DATA))
+        SQL.Envios().insert(Dia_Semana=dia_semana, Data_Envio=time.strftime(SQL.FORMAT_DATA), ID_Flow_API= flow)
 
         return Response("Success", status=200)
 
@@ -280,7 +261,6 @@ def enviar_mensagens(dia_semana):
 
 @app.route("/api/noticias", methods=["GET"])
 def get_noticias():
-    # Obtém os parâmetros da requisição
     args = request.args.get
 
     contact_id = args("contact_id")
