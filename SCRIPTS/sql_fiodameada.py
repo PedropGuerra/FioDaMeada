@@ -62,7 +62,7 @@ def executar_comando_sql(sql: str, values=None):
     if "SELECT" in sql or "select" in sql:
         result = mysql_cursor.fetchall()
         database.commit()
-        return result
+        return resultlocal = random.choice(["contexto", "introducao", "conclusao"])
 
     database.commit()
 
@@ -596,7 +596,7 @@ class Envios:
         self,
         ID_Flow_API: str = None,
         Dia_Semana: int = None,
-        Data_Criacao: str = time.strftime(FORMAT_DATA),
+        Data_Envio: str = time.strftime(FORMAT_DATA),
     ):
         """
         Formato Data= AAAA-MM-DD (2023-08-23)
