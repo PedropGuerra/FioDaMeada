@@ -62,7 +62,7 @@ def executar_comando_sql(sql: str, values=None):
     if "SELECT" in sql or "select" in sql:
         result = mysql_cursor.fetchall()
         database.commit()
-        return resultlocal = random.choice(["contexto", "introducao", "conclusao"])
+        return result
 
     database.commit()
 
