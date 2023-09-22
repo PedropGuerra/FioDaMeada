@@ -1,8 +1,8 @@
 import sys
 import logging
  
-sys.path.insert(0, '/FioDaMeada/')
-sys.path.insert(0, '/FioDaMeada/env/Lib/site-packages/')
+sys.path.insert(0, '/home/pedro_751806/FioDaMeada')
+sys.path.insert(0, '/home/pedro_751806/FioDaMeada/env/Lib/site-packages/')
  
 # Set up logging
 logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
