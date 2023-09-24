@@ -261,8 +261,14 @@ def enviar_mensagens(dia_semana):
         API_SendPulse = Auth_SendPulse()
         contatos = API_SendPulse.get_contatos()
 
+        if dia_semana == "today":
+            dia_semana = date.today().weekday() + 1
+
+
         flow = SQL.SendPulse_Flows().select(categorizacao="dia", Dia_Semana=dia_semana)
 
+        if len(flow) == 0:
+            return Response("SemEnviosHoje", status=200)
 
         tamanho_thread = len(contatos) // 3
         grupos = {1 : contatos[0:tamanho_thread], 2 : contatos[tamanho_thread : tamanho_thread * 2], 3: contatos[tamanho_thread * 2 : tamanho_thread * 3]}
