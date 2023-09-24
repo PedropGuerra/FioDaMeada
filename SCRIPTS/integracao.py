@@ -3,11 +3,12 @@ from random import choices
 from datetime import date
 import requests
 from SCRIPTS.sql_fiodameada import *
+import os
 
 
-CLIENT_ID = "ee842a8007e7a34e290dc77fc984df78"
-CLIENT_SECRET = "2ef059710b021d02111b97b8a28c044f"
-BOT_ID = "6500e98627d2d8922a07a065"
+CLIENT_ID = os.getenv("SP_CLIENT_ID")
+CLIENT_SECRET = os.getenv("SP_CLIENT_SECRET")
+BOT_ID = os.getenv("SP_BOT_ID")
 
 
 class Auth_SendPulse:

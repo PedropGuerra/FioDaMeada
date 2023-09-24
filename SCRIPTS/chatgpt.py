@@ -1,9 +1,7 @@
 import openai
+import os
 
-KEY = "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"
-
-# openai.organiaztion = "org-bvqjVocLxGEOwe1dgdfyr3RV"
-openai.api_key = KEY
+openai.api_key = os.getenv("CGPT_KEY")
 
 def criar_fakenews(headline:str ,texto:str, local:str):
 	"""
@@ -36,6 +34,7 @@ def criar_fakenews(headline:str ,texto:str, local:str):
 		frequency_penalty=0,
 		presence_penalty=0)
 
+	#tratamento da resposta para retornar
 	resp_headline = response["choices"][0]["message"]["content"].split("\n")[0]
 	resp_texto = response["choices"][0]["message"]["content"].removeprefix(resp_headline).strip().removeprefix("Texto: ")
 

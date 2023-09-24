@@ -31,9 +31,8 @@ def remover_linhas_em_branco(texto):
 
 class FioDaMeada_Script_Crawling:
     def __init__(self) -> None:
-        pass
-        # self.queue: dict = {}
-        # self.logica_script()
+        self.queue: dict = {}
+        self.logica_script()
 
     def logica_script(self):
         info_raspagem = self.import_info_raspagem()
@@ -47,7 +46,6 @@ class FioDaMeada_Script_Crawling:
 
 
     def import_info_raspagem(self):
-        connect_db()
         return Parceiros().select(categorizacao="script")
 
     def add_in_queue(self, info: list) -> dict:
@@ -73,7 +71,6 @@ class FioDaMeada_Script_Crawling:
             feed_link_parse = feedparser.parse(feed["link"])
             tag_headline = feed["tags_html"]["Headline"]
             tag_texto = feed["tags_html"]["Text"]
-            # tag_resumo = feed["tags_html"]["Resumo"]
 
             for entrie in feed_link_parse.entries:
                 headline = getattr(entrie, tag_headline)
@@ -112,12 +109,12 @@ class FioDaMeada_Script_Crawling:
 
 
     def transformar_fakenews(self, headline:str, text:str):
-        escolha = random.choices(["s","n"], weights=[35,65], k=1)
+        escolha = random.choices(["s","n"], weights=[35,65], k=1) #35% de chance de se tornar uma FakeNews
         local = None
         
 
         if escolha == "s":
-            local = random.choice(["contexto", "introducao", "conclusao"])
+            local = random.choice(["contexto", "introducao", "conclusao"]) #escolhe apenas um local aleatoriamente
             fake = 1
             return (criar_fakenews(headline=headline, texto=text, local=local), local, fake)
 

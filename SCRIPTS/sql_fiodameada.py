@@ -1,20 +1,12 @@
-"""
-dadadas"""
-
 import mysql.connector
 import time
 import json
 import bleach
+import os
 
-# """
-# - CRUD de todas as tabelas
-# - Principais selects
-# """
 
-MAIN_DATABASE = "fiodameada"
-HOST = "34.134.108.235"
-USER = "pedro"
-PASSWORD = "959538698gbP@"
+MAIN_DATABASE = os.getenv("DB_MAIN_DATABASE")
+HOST = os.getenv("DB_HOST")
 FORMAT_DATA = "%Y-%m-%d"
 
 
