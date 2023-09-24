@@ -9,6 +9,10 @@ import concurrent.futures
 from threading import Thread
 import random
 import json
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
 
 
 app = Flask(__name__)
@@ -82,11 +86,30 @@ def login():
         resp = make_response(redirect(url_for("hub")))
         resp.set_cookie("login", request.form["user"])
         resp.set_cookie("password", request.form["password"])
+        resp.set_cookie("db_login", 1)
 
         return resp
 
     else:
         return render_template("login.html", error=error)
+
+
+def login_database(API_KEY):
+    if request.cookies.get("db_login") == 1:
+        pass
+
+    elif API_KEY:
+        SQL.connect_db(user = os.getenv("DB_SP_LOGIN"), password= API_KEY)
+
+    else:
+        try:
+            cookies_user = request.cookies.get("user")
+            cookies_pswd = request.cookies.get("password")
+            SQL.connect_db(user = cookies_user, password = cookies_pswd)
+
+        except:
+            return redirect(url_for("login"))
+
 
 @app.route("/admin/hub")
 def hub():
@@ -103,9 +126,9 @@ def hub():
     return hub_string
 
 
-
 @app.route("/admin/cadastro_parceiro", methods=["POST", "GET"])
 def cadastro():
+    login_database()
     parceiros = SQL.Parceiros()
     if request.method == "POST":
         if "Headline" in request.form:
@@ -147,6 +170,7 @@ def cadastro():
 
 @app.route("/admin/associacao_noticias", methods=["POST", "GET"])
 def associacao_noticias():
+    login_database()
     if request.method == "POST":
         request_return = request.form.to_dict(flat=False)
         # print(request_return)
@@ -225,6 +249,7 @@ def associacao_noticias():
 
 @app.route("/api/script")
 def script():
+    login_database(request.args.get("API_KEY"))
     Script_Crawl.FioDaMeada_Script_Crawling()
     return Response(status = 200)
 
@@ -232,6 +257,7 @@ def script():
 @app.route("/api/mensagens/enviar/<dia_semana>")
 def enviar_mensagens(dia_semana):
     try:
+        login_database(request.args.get("API_KEY"))
         API_SendPulse = Auth_SendPulse()
         contatos = API_SendPulse.get_contatos()
 
@@ -260,6 +286,7 @@ def enviar_mensagens(dia_semana):
 
 @app.route("/api/noticias", methods=["GET"])
 def get_noticias():
+    login_database(request.args.get("API_KEY"))
     args = request.args.get
 
     contact_id = args("contact_id")
