@@ -15,11 +15,6 @@ class Auth_SendPulse:
     def __init__(self) -> None:
         self.default_api_link = "https://api.sendpulse.com/telegram"
         self.access_token = ""
-        self.header = {
-            "Authorization": f"Bearer {self.access_token}",
-            "Content-Type": "application/json",
-        }
-
         self.auth()
 
     def auth(self):
@@ -32,21 +27,36 @@ class Auth_SendPulse:
         request = requests.post(
             "https://api.sendpulse.com/oauth/access_token", data=data
         ).json()
+        print(request)
 
         self.access_token = request["access_token"]
+
+
+    def define_header(self):
+        return {
+            "Authorization": f"Bearer {self.access_token}",
+            "Content-Type": "application/json",
+        }
+
+
 
     def get_preferencias(self, contact_id: str):
         request = requests.get(
             self.default_api_link + "/contacts/get",
             params={"id": contact_id},
-            headers=self.header,
+            headers=self.define_header(),
         ).json()
 
         if len(request["data"]["tags"]) >= 1:
-            return map(
-                lambda tag: Preferencia_Usuarios().confirm(Nome_Preferencia=tag),
-                request["data"]["tags"],
-            )
+            response = list(map(
+                            lambda tag: Preferencia_Usuarios().confirm(Nome_Preferencia=tag),
+                            request["data"]["tags"],
+                        ))
+
+            response = list(map(lambda x: x[0], response))
+
+            return response
+            
 
         else:
             return None
@@ -57,7 +67,7 @@ class Auth_SendPulse:
         contatos = []
 
         for pref in preferencias:
-            request = requests.get(url, params={"tag" : pref}, headers = self.header)
+            request = requests.get(url, params={"tag" : pref}, headers = self.define_header())
             contatos_temp = map(lambda contact : contatos.append(contact["id"]), request["data"])
 
         return contatos
@@ -68,12 +78,12 @@ class Auth_SendPulse:
 
         for contact in contacts:
             params = {"contact_id" : contact_id,"flow_id" : flow_id}
-            requests.post(url, params=params, headers=self.header)
+            requests.post(url, params=params, headers=self.define_header())
 
     def sync_formatos(self):
         url = self.default_api_link + "/flows"
 
-        request_flows = requests.get(url, params={"bot_id" : BOT_ID}, headers=self.header).json()
+        request_flows = requests.get(url, params={"bot_id" : BOT_ID}, headers=self.define_header()).json()
 
         db_sendpulse = SendPulse_Flows()
         flows_db = db_sendpulse.select(categorizacao="todos")

@@ -5,12 +5,11 @@ from dateutil.relativedelta import relativedelta
 import SCRIPTS.sql_fiodameada as SQL
 from SCRIPTS.integracao import Auth_SendPulse
 import SCRIPTS.Script_Crawl as Script_Crawl
-import concurrent.futures
 from threading import Thread
 import random
-import json
 from dotenv import load_dotenv
 import os
+import time
 
 load_dotenv()
 
@@ -57,11 +56,13 @@ def html_tags(link: str) -> str:
 
     return html_string
 
+
 def has_no_empty_params(rule):
     defaults = rule.defaults if rule.defaults is not None else ()
     arguments = rule.arguments if rule.arguments is not None else ()
 
     return len(defaults) >= len(arguments)
+
 
 def site_map_route():
     routes = []
@@ -74,9 +75,11 @@ def site_map_route():
 
     return routes
 
+
 @app.route("/admin")
 def red_login():
     return redirect(url_for("login"))
+
 
 @app.route("/admin/login", methods=["POST", "GET"])
 def login():
@@ -95,19 +98,24 @@ def login():
 
 
 def login_database(API_KEY):
-    if request.cookies.get("db_login") == 1:
+    print(API_KEY)
+    if request.cookies.get("db_login"):
+        print("Já está logado")
         pass
 
     elif API_KEY:
-        SQL.connect_db(user = os.getenv("DB_SP_LOGIN"), password= API_KEY)
+        print("logando através da API KEY")
+        SQL.connect_db(user=os.getenv("DB_SP_LOGIN"), password=API_KEY)
 
     else:
         try:
+            print("logando com cookies")
             cookies_user = request.cookies.get("user")
             cookies_pswd = request.cookies.get("password")
-            SQL.connect_db(user = cookies_user, password = cookies_pswd)
+            SQL.connect_db(user=cookies_user, password=cookies_pswd)
 
         except:
+            print("não foi possível logar")
             return redirect(url_for("login"))
 
 
@@ -247,11 +255,12 @@ def associacao_noticias():
 
         return noticias_string
 
+
 @app.route("/api/script")
 def script():
     login_database(request.args.get("API_KEY"))
     Script_Crawl.FioDaMeada_Script_Crawling()
-    return Response(status = 200)
+    return Response(status=200)
 
 
 @app.route("/api/mensagens/enviar/<dia_semana>")
@@ -264,14 +273,17 @@ def enviar_mensagens(dia_semana):
         if dia_semana == "today":
             dia_semana = date.today().weekday() + 1
 
-
         flow = SQL.SendPulse_Flows().select(categorizacao="dia", Dia_Semana=dia_semana)
 
         if len(flow) == 0:
             return Response("SemEnviosHoje", status=200)
 
         tamanho_thread = len(contatos) // 3
-        grupos = {1 : contatos[0:tamanho_thread], 2 : contatos[tamanho_thread : tamanho_thread * 2], 3: contatos[tamanho_thread * 2 : tamanho_thread * 3]}
+        grupos = {
+            1: contatos[0:tamanho_thread],
+            2: contatos[tamanho_thread : tamanho_thread * 2],
+            3: contatos[tamanho_thread * 2 : tamanho_thread * 3],
+        }
 
         if len(contatos) - tamanho_thread * 3 != 0:
             de = tamanho_thread * 3
@@ -281,8 +293,11 @@ def enviar_mensagens(dia_semana):
         for grupo in grupos.values():
             Thread(target=API_SendPulse.run_flows, args=(flow, grupo)).start()
 
-
-        SQL.Envios().insert(Dia_Semana=dia_semana, Data_Envio=time.strftime(SQL.FORMAT_DATA), ID_Flow_API= flow)
+        SQL.Envios().insert(
+            Dia_Semana=dia_semana,
+            Data_Envio=time.strftime(SQL.FORMAT_DATA),
+            ID_Flow_API=flow,
+        )
 
         return Response("Success", status=200)
 
@@ -292,8 +307,9 @@ def enviar_mensagens(dia_semana):
 
 @app.route("/api/noticias", methods=["GET"])
 def get_noticias():
-    login_database(request.args.get("API_KEY"))
     args = request.args.get
+    print(args("API_KEY"))
+    login_database(request.args.get("API_KEY"))
 
     contact_id = args("contact_id")
     if not contact_id:
@@ -306,6 +322,9 @@ def get_noticias():
 
     API_SendPulse = Auth_SendPulse()
     preferencias_id = API_SendPulse.get_preferencias(contact_id)
+
+    if not preferencias_id:
+        abort(400, "O usuário não possui preferências cadastradas")
 
     condicoes_dict = {
         "rodadas+noticias+fake": qtd_rodadas and qtd_fakenews and qtd_noticias,
@@ -322,32 +341,41 @@ def get_noticias():
             "resumo": noticia[4],
             "link": noticia[2],
             "parceiro": SQL.Parceiros().confirm(ID_Parceiro=noticia[1]),
-            "fake_local" : noticia[6],
+            "fake_local": noticia[6],
         }
 
-    db_noticias = list(
-        map(
-            formatacao_dict,
-            SQL.Noticias().select(
-                formato="qtd_noticias",
-                qtd_noticias=qtd_noticias,
-                contact_id=contact_id,
-                preferencias_id=preferencias_id,
-            ),
+    db_noticias = (
+        list(
+            map(
+                formatacao_dict,
+                SQL.Noticias().select(
+                    formato="qtd_noticias",
+                    qtd_noticias=qtd_noticias,
+                    contact_id=contact_id,
+                    preferencias_id=preferencias_id,
+                ),
+            )
         )
+        if qtd_noticias
+        else None
     )
 
-    db_fakenews = list(
-        map(
-            formatacao_dict,
-            SQL.Noticias().select(
-                formato="qtd_fakenews",
-                qtd_fakenews=qtd_fakenews,
-                contact_id=contact_id,
-                preferencias_id=preferencias_id,
-            ),
+    db_fakenews = (
+        list(
+            map(
+                formatacao_dict,
+                SQL.Noticias().select(
+                    formato="qtd_fakenews",
+                    qtd_fakenews=qtd_fakenews,
+                    contact_id=contact_id,
+                    preferencias_id=preferencias_id,
+                ),
+            )
         )
+        if qtd_fakenews
+        else None
     )
+
     resp_noticias = {}
     resp_gabarito = {}
     response = {"Noticias": resp_noticias, "Gabarito": resp_gabarito}
@@ -368,14 +396,17 @@ def get_noticias():
             for i, noticia in enumerate(rodada_noticias):
                 resp_noticias[f"noticia{i + 1}"] = noticia
                 if noticia["fake"] == 1:
-                    resp_gabarito[f"rodada{i+1}"] = {"id" : noticia["id"], "local" : noticia["fake_local"]}
+                    resp_gabarito[f"rodada{i+1}"] = {
+                        "id": noticia["id"],
+                        "local": noticia["fake_local"],
+                    }
 
     elif condicoes_dict["only_noticias"]:
-        for i, noticia in enumerate(noticias):
+        for i, noticia in enumerate(db_noticias):
             response["Noticias"][f"noticia{i + 1}"] = noticia
 
     elif condicoes_dict["only_fake"]:
-        for i, fake in enumerate(fakenews):
+        for i, fake in enumerate(db_fakenews):
             response["Noticias"][f"noticia{i + 1}"] = fake
 
     elif condicoes_dict["fake+rodadas"]:
@@ -386,8 +417,11 @@ def get_noticias():
         for i, noticia in enumerate(db_noticias + db_fakenews):
             match noticia["fake"]:
                 case 1:
-                    resp_noticias[f"fakenews{i+1}"] = noticia
-                    resp_gabarito[i + 1] = {"id" : noticia["id"], "local" : noticia["fake_local"]}
+                    resp_noticias[f"noticia{i+1}"] = noticia
+                    resp_gabarito[f"rodada{i + 1}"] = {
+                        "id": noticia["id"],
+                        "local": noticia["fake_local"],
+                    }
 
                 case 0:
                     resp_noticias[f"noticia{i+1}"] = noticia

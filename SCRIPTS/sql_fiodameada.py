@@ -507,22 +507,21 @@ class Noticias:
         """
 
         if formato != "associacao":
-            if preferencias_id and contact_id and len(preferencias_id) == 3:
-                col_pref = "ID_Pref_Usuario"
-                where = f"Status = 0 AND NOT ID_Contato = {contact_id}"
-                where += f" AND ({col_pref} = {preferencias_id[0]} or {col_pref} = {preferencias_id[1]} or {col_pref} = {preferencias_id[2]})"
-                where_noticia = " AND Fake = 0"
-                where_fake = " AND Fake = 1"
-                limit_random_noticia = f" ORDER BY RAND() LIMIT {qtd_noticias}"
-                limit_random_fake = f" ORDER BY RAND() LIMIT {qtd_fakenews}"
+            col_pref = "ID_Pref_Usuario"
+            where = f"Status = 0 AND NOT ID_Contato = '{contact_id}'"
+            where += f" AND ({col_pref} = {preferencias_id[0][0]} or {col_pref} = {preferencias_id[1][0]} or {col_pref} = {preferencias_id[2][0]})"
+            where_noticia = " AND Fake = 0"
+            where_fake = " AND Fake = 1"
+            limit_random_noticia = f" ORDER BY RAND() LIMIT {qtd_noticias}"
+            limit_random_fake = f" ORDER BY RAND() LIMIT {qtd_fakenews}"
 
-                cols_to_select = "n.ID_Noticia, n.ID_Parceiro, n.Link_Publicacao, n.Headline_Publicacao, n.Resumo_Publicacao, n.Fake, n.Fake_Local"
-                select_from = (
-                    f"SELECT DISTINCT {cols_to_select} from {self.nome_tabela} as n"
-                )
-                select_from += f" INNER JOIN {self.tabela_noticias_preferencia} as np on n.ID_Noticia = np.ID_Noticia"
-                select_from += f" CROSS JOIN {self.tabela_noticias_usuarios}"
-                select_from += f" WHERE {where}"
+            cols_to_select = "n.ID_Noticia, n.ID_Parceiro, n.Link_Publicacao, n.Headline_Publicacao, n.Resumo_Publicacao, n.Fake, n.Fake_Local"
+            select_from = (
+                f"SELECT DISTINCT {cols_to_select} from {self.nome_tabela} as n"
+            )
+            select_from += f" INNER JOIN {self.tabela_noticias_preferencia} as np on n.ID_Noticia = np.ID_Noticia"
+            select_from += f" CROSS JOIN {self.tabela_noticias_usuarios}"
+            select_from += f" WHERE {where}"
 
         match formato:
             case "associacao":
@@ -530,17 +529,28 @@ class Noticias:
                     data_desde = f"Data_Publicacao_Parceiro >= '{data_desde}'"
                     data_ate = f"AND Data_Publicacao_Parceiro <= '{data_ate}'"
                     select_from = f"SELECT * FROM {self.nome_tabela} as nt INNER JOIN Noticias_Preferencias as np on NOT nt.ID_Noticia = np.ID_Noticia WHERE {data_desde} {data_ate}"
+                    print(select_from)
                     return executar_comando_sql(select_from)
 
             case "qtd_noticias":
-                return executar_comando_sql(
-                    select_from + where_noticia + limit_random_noticia
-                )
+                if qtd_noticias:
+                    print(select_from + where_noticia + limit_random_noticia)
+                    return executar_comando_sql(
+                        select_from + where_noticia + limit_random_noticia
+                    )
+
+                else:
+                    return None
 
             case "qtd_fakenews":
-                return executar_comando_sql(
-                    select_from + where_fake + limit_random_fake
-                )
+                if qtd_fakenews:
+                    print(select_from + where_fake + limit_random_fake)
+                    return executar_comando_sql(
+                        select_from + where_fake + limit_random_fake
+                    )
+
+                else:
+                    return None
 
     def update(
         self,
