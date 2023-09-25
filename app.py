@@ -7,11 +7,8 @@ from SCRIPTS.integracao import Auth_SendPulse
 import SCRIPTS.Script_Crawl as Script_Crawl
 from threading import Thread
 import random
-from dotenv import load_dotenv
 import os
 import time
-
-load_dotenv()
 
 
 app = Flask(__name__)

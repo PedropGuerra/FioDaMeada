@@ -21,9 +21,6 @@ def sanitizar_input(input):
 def connect_db(user: str = None, password: str = None) -> None:
     """a"""
     global database, mysql_cursor
-    if user == None or password == None:
-        user = USER
-        password = PASSWORD
 
     database = mysql.connector.connect(
         host=HOST, user=user, password=password, database=MAIN_DATABASE
@@ -110,7 +107,11 @@ class SendPulse_Flows:
         self.nome_tabela = "SendPulse_Flows"
 
     def insert(
-        self, ID_Flow_API: str, Nome_Flow: str, Data_Registro:str, Dia_Semana: int = None
+        self,
+        ID_Flow_API: str,
+        Nome_Flow: str,
+        Data_Registro: str,
+        Dia_Semana: int = None,
     ) -> None:
         """
         Dia_Semana = 1 (Domingo)
@@ -134,7 +135,9 @@ class SendPulse_Flows:
 
         executar_comando_sql(insert_into)
 
-    def select(self, categorizacao: str, ID_Flow_API:str = None, Dia_Semana:int = None):
+    def select(
+        self, categorizacao: str, ID_Flow_API: str = None, Dia_Semana: int = None
+    ):
         """
         categorizacao = 'id', 'dia', 'todos'
         Dia_Semana = 1 (Domingo)
@@ -167,8 +170,7 @@ class SendPulse_Flows:
                 select_from = f"SELECT * FROM {self.nome_tabela}"
                 return executar_comando_sql(select_from)
 
-
-    def update(self, ID_Flow_API: str, Nome_Flow:str = None, Dia_Semana: int = None):
+    def update(self, ID_Flow_API: str, Nome_Flow: str = None, Dia_Semana: int = None):
         columns_dict = {
             "ID_Flow_API": ID_Flow_API,
             "Nome_Flow": Nome_Flow,
@@ -181,14 +183,16 @@ class SendPulse_Flows:
 
         executar_comando_sql(sql_string)
 
-    def confirm(self, ID_FLOW_API:str = None, Nome_Flow:str = None):
+    def confirm(self, ID_FLOW_API: str = None, Nome_Flow: str = None):
         if ID_Flow_API:
             where = f"ID_Flow_API = {ID_Flow_API}"
 
         elif Nome_Flow:
             where = f"Nome_Flow = {Nome_Flow}"
 
-        select_from = f"SELECT ID_Flow_API, Nome_Flow from {self.nome_tabela} WHERE {where}"
+        select_from = (
+            f"SELECT ID_Flow_API, Nome_Flow from {self.nome_tabela} WHERE {where}"
+        )
         return executar_comando_sql(select_from)
 
 
@@ -441,8 +445,8 @@ class Noticias:
             "Data_Publicacao_Parceiro": Data_Publicacao_Parceiro,
             "Data_Registro_DB": Data_Registro_DB,
             "Status": Status,
-            "Fake" : Fake,
-            "Fake_Local" : Fake_Local,
+            "Fake": Fake,
+            "Fake_Local": Fake_Local,
         }
 
         values_string = transformar_valores_em_string("insert", values)
@@ -470,7 +474,6 @@ class Noticias:
             f"INSERT INTO {self.tabela_noticias_preferencia} VALUES ({values_string})"
         )
         executar_comando_sql(insert_into)
-
 
     def noticias_usuario(self, ID_Contato: str, IDs_Noticia) -> None:
         values = {
@@ -610,7 +613,7 @@ class Envios:
             "ID_Envio": "null",
             "Dia_Semana": Dia_Semana,
             "Data_Envio": Data_Envio,
-            "ID_Flow_API" : ID_Flow_API
+            "ID_Flow_API": ID_Flow_API,
         }
 
         value_string = transformar_valores_em_string("insert", values)

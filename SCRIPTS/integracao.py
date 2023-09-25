@@ -31,14 +31,11 @@ class Auth_SendPulse:
 
         self.access_token = request["access_token"]
 
-
     def define_header(self):
         return {
             "Authorization": f"Bearer {self.access_token}",
             "Content-Type": "application/json",
         }
-
-
 
     def get_preferencias(self, contact_id: str):
         request = requests.get(
@@ -47,55 +44,62 @@ class Auth_SendPulse:
             headers=self.define_header(),
         ).json()
 
+        print(f"request pref: {request}")
         if len(request["data"]["tags"]) >= 1:
-            response = list(map(
-                            lambda tag: Preferencia_Usuarios().confirm(Nome_Preferencia=tag),
-                            request["data"]["tags"],
-                        ))
+            response = list(
+                map(
+                    lambda tag: Preferencia_Usuarios().confirm(Nome_Preferencia=tag),
+                    request["data"]["tags"],
+                )
+            )
 
             response = list(map(lambda x: x[0], response))
 
             return response
-            
 
         else:
             return None
 
     def get_contatos(self):
-        preferencias = map(lambda pref : pref[1],Preferencia_Usuarios().select())
+        preferencias = map(lambda pref: pref[1], Preferencia_Usuarios().select())
         url = self.default_api_link + "/contacts/getByTag"
         contatos = []
 
         for pref in preferencias:
-            request = requests.get(url, params={"tag" : pref}, headers = self.define_header())
-            contatos_temp = map(lambda contact : contatos.append(contact["id"]), request["data"])
+            request = requests.get(
+                url, params={"tag": pref}, headers=self.define_header()
+            )
+            contatos_temp = map(
+                lambda contact: contatos.append(contact["id"]), request["data"]
+            )
 
         return contatos
-
 
     def run_flows(self, flow_id: str, contacts: list) -> None:
         url = self.default_api_link + "/flows/run"
 
         for contact in contacts:
-            params = {"contact_id" : contact_id,"flow_id" : flow_id}
+            params = {"contact_id": contact_id, "flow_id": flow_id}
             requests.post(url, params=params, headers=self.define_header())
 
     def sync_formatos(self):
         url = self.default_api_link + "/flows"
 
-        request_flows = requests.get(url, params={"bot_id" : BOT_ID}, headers=self.define_header()).json()
+        request_flows = requests.get(
+            url, params={"bot_id": BOT_ID}, headers=self.define_header()
+        ).json()
 
         db_sendpulse = SendPulse_Flows()
         flows_db = db_sendpulse.select(categorizacao="todos")
 
         for flow in request_flows["data"]:
-
-            confirm = db_sendpulse.confirm(ID_FLOW_API = flow["id"])
+            confirm = db_sendpulse.confirm(ID_FLOW_API=flow["id"])
             if confirm[1] != flow["name"]:
                 db_sendpulse.update(ID_FLOW_API=flow["id"], Nome_Flow=flow["name"])
 
             elif len(confirm) == 0:
                 db_sendpulse.insert(
                     ID_FLOW_API=flow["id"],
-                    Nome_Flow = flow["name"],
-                    Data_Registro = flow["created_at"],)
+                    Nome_Flow=flow["name"],
+                    Data_Registro=flow["created_at"],
+                )
