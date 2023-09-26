@@ -476,18 +476,21 @@ class Noticias:
         executar_comando_sql(insert_into)
 
     def noticias_usuario(self, ID_Contato: str, IDs_Noticia) -> None:
-        values = {
-            "IDs_Noticia": IDs_Noticia,
-            "ID_Contato": ID_Contato,
-        }
+        
+        for ID in IDs_Noticia:
+            
+            values = {
+                "IDs_Noticia": IDs_Noticia,
+                "ID_Contato": ID_Contato,
+            }
 
-        values_string = transformar_valores_em_string("insert", values)
+            values_string = transformar_valores_em_string("insert", values)
 
-        insert_into = (
-            f"INSERT INTO {self.tabela_noticias_usuarios} VALUES ({values_string})"
-        )
+            insert_into = (
+                f"INSERT INTO {self.tabela_noticias_usuarios} VALUES ({values_string})"
+            )
 
-        executar_comando_sql(insert_into)
+            executar_comando_sql(insert_into)
 
     def select(
         self,

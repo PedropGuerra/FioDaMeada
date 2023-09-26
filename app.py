@@ -95,23 +95,23 @@ def login():
 
 
 def login_database(API_KEY=None):
-    print(API_KEY)
+    # #print(API_KEY)
     if request.cookies.get("db_login"):
         pass
 
     elif API_KEY:
-        print("logando através da API KEY")
+        #print("logando através da API KEY")
         SQL.connect_db(user=os.getenv("DB_SP_LOGIN"), password=API_KEY)
 
     else:
         try:
-            print("logando com cookies")
+            #print("logando com cookies")
             cookies_user = request.cookies.get("user")
             cookies_pswd = request.cookies.get("password")
             SQL.connect_db(user=cookies_user, password=cookies_pswd)
 
         except:
-            print("não foi possível logar")
+            #print("não foi possível logar")
             return redirect(url_for("login"))
 
 
@@ -177,7 +177,7 @@ def associacao_noticias():
     login_database()
     if request.method == "POST":
         request_return = request.form.to_dict(flat=False)
-        # print(request_return)
+        # #print(request_return)
         for id_noticia in request_return:
             if "Inutilizar" in request_return[id_noticia]:
                 SQL.Noticias().update(ID_Noticia=id_noticia, Status="1")  # inutilizada
@@ -191,7 +191,7 @@ def associacao_noticias():
                     SQL.Noticias().insert_preferencia(
                         ID_Pref_Usuario=id_pref, ID_Noticia=id_noticia
                     )
-                    print(id_noticia, " + ", id_pref)
+                    #print(id_noticia, " + ", id_pref)
 
         return redirect(url_for("associacao_noticias"))
 
@@ -218,7 +218,7 @@ def associacao_noticias():
                 <option value="Inutilizar">Inutilizar</option>
                 """
 
-        # print(len(noticias))
+        # #print(len(noticias))
         while len(noticias) != 0:
             noticias = SQL.Noticias().select(
                 formato="associacao",
@@ -304,7 +304,7 @@ def enviar_mensagens(dia_semana):
 @app.route("/api/noticias", methods=["GET"])
 def get_noticias():
     args = request.args.get
-    print(args("API_KEY"))
+    #print(args("API_KEY"))
     login_database(request.args.get("API_KEY"))
 
     contact_id = args("contact_id")
@@ -380,14 +380,14 @@ def get_noticias():
         for rodada in range(1, qtd_rodadas + 1):
             noticias_por_rodada = min(qtd_noticias // qtd_rodadas, len(db_noticias))
             fakenews_por_rodada = min(qtd_fakenews // qtd_rodadas, len(db_fakenews))
-            print(f"noticias_por_rodada : {noticias_por_rodada}")
-            print(f"fakenews_por_rodada : {fakenews_por_rodada}")
+            #print(f"noticias_por_rodada : {noticias_por_rodada}")
+            #print(f"fakenews_por_rodada : {fakenews_por_rodada}")
 
             rodada_noticias = random.sample(
                 db_fakenews, fakenews_por_rodada
             ) + random.sample(db_noticias, noticias_por_rodada)
             random.shuffle(rodada_noticias)
-            print(f"rodada_noticias : {rodada_noticias}")
+            #print(f"rodada_noticias : {rodada_noticias}")
 
             for i, noticia in enumerate(rodada_noticias):
                 resp_noticias[f"noticia{i + 1}"] = noticia
@@ -425,11 +425,10 @@ def get_noticias():
     else:
         return Response("error", status=400)
 
-    if producao:
-
+    if not "0" in producao:
         def atualizar_noticias(db_noticias, db_fakenews, contact_id):
             ids_noticias = [noticia["id"] for noticia in db_noticias + db_fakenews]
-            SQL.Noticias().noticias_usuario(contact_id, ids_noticias)
+            SQL.Noticias().noticias_usuario(contact_id,ids_noticias)
 
         Thread(
             target=atualizar_noticias, args=(db_noticias, db_fakenews, contact_id)
