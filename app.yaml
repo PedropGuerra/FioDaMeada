@@ -16,9 +16,6 @@ runtime: python
 env: flex
 entrypoint: gunicorn -b :$PORT app:app
 
-includes:
-  - env_variables.yaml
-
 runtime_config:
   operating_system: ubuntu22
 

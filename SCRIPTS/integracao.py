@@ -3,7 +3,7 @@ from random import choices
 from datetime import date
 import requests
 from SCRIPTS.sql_fiodameada import *
-import os
+import SCRIPTS.secrets as os
 
 
 CLIENT_ID = os.getenv("SP_CLIENT_ID")

@@ -7,7 +7,7 @@ from SCRIPTS.integracao import Auth_SendPulse
 import SCRIPTS.Script_Crawl as Script_Crawl
 from threading import Thread
 import random
-import os
+import SCRIPTS.secrets as os
 import time
 
 
@@ -86,7 +86,7 @@ def login():
         resp = make_response(redirect(url_for("hub")))
         resp.set_cookie("login", request.form["user"])
         resp.set_cookie("password", request.form["password"])
-        resp.set_cookie("db_login", 1)
+        resp.set_cookie("db_login", "1")
 
         return resp
 
@@ -94,10 +94,9 @@ def login():
         return render_template("login.html", error=error)
 
 
-def login_database(API_KEY):
+def login_database(API_KEY=None):
     print(API_KEY)
     if request.cookies.get("db_login"):
-        print("Já está logado")
         pass
 
     elif API_KEY:

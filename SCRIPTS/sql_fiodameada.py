@@ -2,7 +2,7 @@ import mysql.connector
 import time
 import json
 import bleach
-import os
+import SCRIPTS.secrets as os
 
 
 MAIN_DATABASE = os.getenv("DB_MAIN_DATABASE")
