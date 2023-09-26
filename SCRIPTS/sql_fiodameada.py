@@ -477,8 +477,8 @@ class Noticias:
 
     def noticias_usuario(self, ID_Contato: str, IDs_Noticia) -> None:
         values = {
-            "ID_Contato": ID_Contato,
             "IDs_Noticia": IDs_Noticia,
+            "ID_Contato": ID_Contato,
         }
 
         values_string = transformar_valores_em_string("insert", values)
