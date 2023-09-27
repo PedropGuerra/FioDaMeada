@@ -3,6 +3,9 @@ import time
 import json
 import bleach
 import SCRIPTS.secrets as os
+import logging
+
+logging.basicConfig(level=logging.INFO, filename="logs.log", format="%(asctime)s - %(levelname)s - %(funcName)s - %(message)s")
 
 
 MAIN_DATABASE = os.getenv("DB_MAIN_DATABASE")
@@ -45,8 +48,8 @@ def executar_comando_sql(sql: str, values=None):
         mysql_cursor.execute(sql, values)
 
     else:
-        print("Erro ao executar um comando")
-        exit()
+        logging.error(f"Não foi possível executar o comando SQL: {sql} + {values}")
+        return None
 
     if "SELECT" in sql or "select" in sql:
         result = mysql_cursor.fetchall()
@@ -163,7 +166,7 @@ class SendPulse_Flows:
                     return executar_comando_sql(select_from)
 
                 else:
-                    print("Dias da Semana apenas 1/2/3/4/5/6/7")
+                    logging.error(f"Dia da Semana {Dia_Semana} inválido")
                     return None
 
             case "todos":
@@ -216,7 +219,7 @@ class Preferencia_Usuarios:
             executar_comando_sql(delete_from)
 
         else:
-            exit()
+            return None
 
     def confirm(self, ID_Pref_Usuario: str = None, Nome_Preferencia: str = None):
         """Informe o ID_Pref_Usuario ou Nome_Preferencia para confirmar"""
@@ -286,7 +289,7 @@ class Parceiros:
             executar_comando_sql(update)
 
         else:
-            exit()
+            return None
 
     def confirm(
         self, ID_Parceiro: str = None, Nome_Parceiro: str = None, Status: int = 1
@@ -451,7 +454,6 @@ class Noticias:
 
         values_string = transformar_valores_em_string("insert", values)
         insert_into = f"INSERT INTO {self.nome_tabela} VALUES ({values_string})"
-        # print(insert_into)
         try:
             executar_comando_sql(insert_into)
         except:
@@ -534,13 +536,14 @@ class Noticias:
                 if data_desde and data_ate:
                     data_desde = f"Data_Publicacao_Parceiro >= '{data_desde}'"
                     data_ate = f"AND Data_Publicacao_Parceiro <= '{data_ate}'"
-                    select_from = f"SELECT * FROM {self.nome_tabela} as nt INNER JOIN Noticias_Preferencias as np on NOT nt.ID_Noticia = np.ID_Noticia WHERE {data_desde} {data_ate}"
-                    print(select_from)
+                    no_pref = "AND np.ID_Pref_Usuario IS NULL"
+                    cols_to_select = "nt.ID_Noticia, nt.Link_Publicacao, nt.Headline_Publicacao, nt.Resumo_Publicacao"
+                    select_from = f"SELECT DISTINCT {cols_to_select} FROM {self.nome_tabela} as nt LEFT JOIN Noticias_Preferencias as np on nt.ID_Noticia = np.ID_Noticia WHERE {data_desde} {data_ate} {no_pref}"
                     return executar_comando_sql(select_from)
 
             case "qtd_noticias":
                 if qtd_noticias:
-                    print(select_from + where_noticia + limit_random_noticia)
+                    logging.info(select_from + where_noticia + limit_random_noticia)
                     return executar_comando_sql(
                         select_from + where_noticia + limit_random_noticia
                     )
@@ -550,7 +553,7 @@ class Noticias:
 
             case "qtd_fakenews":
                 if qtd_fakenews:
-                    print(select_from + where_fake + limit_random_fake)
+                    logging.info(select_from + where_fake + limit_random_fake)
                     return executar_comando_sql(
                         select_from + where_fake + limit_random_fake
                     )
@@ -576,7 +579,7 @@ class Noticias:
         """
 
         if int(Status) < 0 or int(Status) > 2:
-            print("Status de Notícias apenas 0/1/2")
+            logging.error("Status de Notícias {Status} inválido")
             return None
 
         columns_dict = {
@@ -584,7 +587,6 @@ class Noticias:
             "Link_Publicacao": sanitizar_input(Link_Publicacao),
             "Headline_Publicacao": sanitizar_input(Headline_Publicacao),
             "Resumo_Publicacao": sanitizar_input(Resumo_Publicacao),
-            "Tema_Publicacao": sanitizar_input(Tema_Publicacao),
             "Data_Publicacao_Parceiro": Data_Publicacao_Parceiro,
             "Status": Status,
         }
@@ -595,6 +597,9 @@ class Noticias:
 
         executar_comando_sql(sql_string)
 
+    def confirm_noticia(self, Headline_Publicacao: str):
+        confirm_sql = f"SELECT ID_Noticia FROM {self.nome_tabela} WHERE Headline_Publicacao = {Headline_Publicacao}"
+        return executar_comando_sql(confirm_sql)
 
 class Envios:
     def __init__(self) -> None:

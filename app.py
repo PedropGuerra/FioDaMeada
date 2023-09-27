@@ -9,6 +9,9 @@ from threading import Thread
 import random
 import SCRIPTS.secrets as os
 import time
+import logging
+
+logging.basicConfig(level=logging.INFO, filename="logs.log", format="%(asctime)s - %(levelname)s - %(funcName)s - %(message)s")
 
 
 app = Flask(__name__)
@@ -95,23 +98,19 @@ def login():
 
 
 def login_database(API_KEY=None):
-    # #print(API_KEY)
     if request.cookies.get("db_login"):
         pass
 
     elif API_KEY:
-        #print("logando através da API KEY")
         SQL.connect_db(user=os.getenv("DB_SP_LOGIN"), password=API_KEY)
 
     else:
         try:
-            #print("logando com cookies")
             cookies_user = request.cookies.get("user")
             cookies_pswd = request.cookies.get("password")
             SQL.connect_db(user=cookies_user, password=cookies_pswd)
 
         except:
-            #print("não foi possível logar")
             return redirect(url_for("login"))
 
 
@@ -177,7 +176,6 @@ def associacao_noticias():
     login_database()
     if request.method == "POST":
         request_return = request.form.to_dict(flat=False)
-        # #print(request_return)
         for id_noticia in request_return:
             if "Inutilizar" in request_return[id_noticia]:
                 SQL.Noticias().update(ID_Noticia=id_noticia, Status="1")  # inutilizada
@@ -191,7 +189,6 @@ def associacao_noticias():
                     SQL.Noticias().insert_preferencia(
                         ID_Pref_Usuario=id_pref, ID_Noticia=id_noticia
                     )
-                    #print(id_noticia, " + ", id_pref)
 
         return redirect(url_for("associacao_noticias"))
 
@@ -218,7 +215,6 @@ def associacao_noticias():
                 <option value="Inutilizar">Inutilizar</option>
                 """
 
-        # #print(len(noticias))
         while len(noticias) != 0:
             noticias = SQL.Noticias().select(
                 formato="associacao",
@@ -233,9 +229,9 @@ def associacao_noticias():
 
             for i, noticia in enumerate(noticias):
                 noticias_string += f"""
-                <h3>{noticia[3][:150]}</h3>
-                <p>{noticia[4][:400]}</p>
-                <a href="{noticia[2]}">Link Noticia</a> <br>
+                <h3>{noticia[2][:150]}</h3>
+                <p>{noticia[3][:400]}</p>
+                <a href="{noticia[1]}">Link Noticia</a> <br>
                 Preferências<select name="{noticia[0]}" multiple>
                 <{options_pref_string}
                 </select>
@@ -304,7 +300,6 @@ def enviar_mensagens(dia_semana):
 @app.route("/api/noticias", methods=["GET"])
 def get_noticias():
     args = request.args.get
-    #print(args("API_KEY"))
     login_database(request.args.get("API_KEY"))
 
     contact_id = args("contact_id")
@@ -315,6 +310,12 @@ def get_noticias():
     qtd_fakenews = int(args("qtd_fakenews")) if args("qtd_fakenews") else None
     qtd_rodadas = int(args("qtd_rodadas")) if args("qtd_rodadas") else None
     producao = args("producao") if args("producao") else None
+    
+    logging.info(f"Contact ID: {contact_id}")
+    logging.info(f"Qtd_Noticias: {qtd_noticias}")
+    logging.info(f"Qtd_FakeNews: {qtd_fakenews}")
+    logging.info(f"Qtd_Rodadas: {qtd_rodadas}")
+    logging.info(f"Produção: {producao}")
 
     API_SendPulse = Auth_SendPulse()
     preferencias_id = API_SendPulse.get_preferencias(contact_id)
@@ -328,6 +329,8 @@ def get_noticias():
         "only_fake": qtd_fakenews and not qtd_noticias,
         "fake+rodadas": qtd_fakenews and qtd_noticias and not qtd_rodadas,
     }
+    
+    map(lambda condicao: logging.info(f"{condicao}: {condicoes_dict[condicao]}"), condicoes_dict)
 
     def formatacao_dict(noticia):
         return {
@@ -380,14 +383,11 @@ def get_noticias():
         for rodada in range(1, qtd_rodadas + 1):
             noticias_por_rodada = min(qtd_noticias // qtd_rodadas, len(db_noticias))
             fakenews_por_rodada = min(qtd_fakenews // qtd_rodadas, len(db_fakenews))
-            #print(f"noticias_por_rodada : {noticias_por_rodada}")
-            #print(f"fakenews_por_rodada : {fakenews_por_rodada}")
 
             rodada_noticias = random.sample(
                 db_fakenews, fakenews_por_rodada
             ) + random.sample(db_noticias, noticias_por_rodada)
             random.shuffle(rodada_noticias)
-            #print(f"rodada_noticias : {rodada_noticias}")
 
             for i, noticia in enumerate(rodada_noticias):
                 resp_noticias[f"noticia{i + 1}"] = noticia
@@ -406,9 +406,6 @@ def get_noticias():
             response["Noticias"][f"noticia{i + 1}"] = fake
 
     elif condicoes_dict["fake+rodadas"]:
-        # juncao_noticias_fakenews = {}
-        # juncao_noticias_fakenews.update(db_noticias)
-        # juncao_noticias_fakenews.update(db_fakenews)
 
         for i, noticia in enumerate(db_noticias + db_fakenews):
             match noticia["fake"]:
@@ -434,4 +431,5 @@ def get_noticias():
             target=atualizar_noticias, args=(db_noticias, db_fakenews, contact_id)
         ).start()
 
+    logging.info(response)
     return response

@@ -1,9 +1,12 @@
 from time import strftime
 from random import choices
-from datetime import date
+from datetime import date, datetime, timedelta
 import requests
 from SCRIPTS.sql_fiodameada import *
 import SCRIPTS.secrets as os
+import logging
+
+logging.basicConfig(level=logging.INFO, filename="logs.log", format="%(asctime)s - %(levelname)s - %(funcName)s - %(message)s")
 
 
 CLIENT_ID = os.getenv("SP_CLIENT_ID")
@@ -14,26 +17,39 @@ BOT_ID = os.getenv("SP_BOT_ID")
 class Auth_SendPulse:
     def __init__(self) -> None:
         self.default_api_link = "https://api.sendpulse.com/telegram"
-        self.access_token = ""
         self.auth()
 
     def auth(self):
-        data = {
-            "grant_type": "client_credentials",
-            "client_id": CLIENT_ID,
-            "client_secret": CLIENT_SECRET,
-        }
+        try:
+            os.getenv('SP_AUTH_KEY')
+            os.getenv('SP_AUTH_EXPIRE')
+            
+            if not os.getenv('SP_AUTH_KEY') or datetime.strptime(os.getenv('SP_AUTH_EXPIRE'), "%Y-%m-%d %H:%M:%S.%f") < datetime.now():
+                data = {
+                    "grant_type": "client_credentials",
+                    "client_id": CLIENT_ID,
+                    "client_secret": CLIENT_SECRET,
+                }
 
-        request = requests.post(
-            "https://api.sendpulse.com/oauth/access_token", data=data
-        ).json()
-        print(request)
+                request = requests.post(
+                    "https://api.sendpulse.com/oauth/access_token", data=data
+                ).json()
 
-        self.access_token = request["access_token"]
+                os.setenv('SP_AUTH_KEY', request["access_token"])
+                os.setenv("SP_AUTH_EXPIRE", datetime.now() + timedelta(seconds=request["expire"] - 600))
+                logging.info(f"{os.getenv('SP_AUTH_KEY')} - {os.getenv('SP_AUTH_EXPIRE')}")
+            
+            else:
+                pass
+            
+        except:
+            pass
+        
+        
 
     def define_header(self):
         return {
-            "Authorization": f"Bearer {self.access_token}",
+            "Authorization": f"Bearer {os.getenv('SP_AUTH_KEY')}",
             "Content-Type": "application/json",
         }
 
@@ -44,7 +60,7 @@ class Auth_SendPulse:
             headers=self.define_header(),
         ).json()
 
-        print(f"request pref: {request}")
+        
         if len(request["data"]["tags"]) >= 1:
             response = list(
                 map(
@@ -54,10 +70,13 @@ class Auth_SendPulse:
             )
 
             response = list(map(lambda x: x[0], response))
+            
+            logging.info(response)
 
             return response
 
         else:
+            logging.critical(f"Preferências do usuário {contact_id} inexistentes")
             return None
 
     def get_contatos(self):

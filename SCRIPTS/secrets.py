@@ -1,3 +1,5 @@
+import os
+
 with open("env_variables.txt", "r") as txt:
     global txt_dict
     txt = list(map(lambda index: index.replace("\n", "").split(":"), txt.readlines()))
@@ -5,4 +7,13 @@ with open("env_variables.txt", "r") as txt:
 
 
 def getenv(key):
-    return txt_dict[key]
+    try:
+        return txt_dict[key]
+
+    except:
+        return None
+
+
+def setenv(key, value) -> None:
+    # os.environ[f"{key}"] = value
+    txt_dict[key] = value

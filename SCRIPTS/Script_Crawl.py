@@ -51,7 +51,6 @@ class FioDaMeada_Script_Crawling:
     def add_in_queue(self, info: list) -> dict:
         for feed in info:
             # feed = feed[i]
-            print(feed)
             ID_Parceiro = feed[0]
             Link_Parceiro = feed[3]
             Tags_HTML_Raspagem = feed[2]
@@ -75,23 +74,28 @@ class FioDaMeada_Script_Crawling:
             for entrie in feed_link_parse.entries:
                 headline = getattr(entrie, tag_headline)
                 headline = self.sanitize_text(headline)
-                resumo = getattr(entrie, tag_texto)
-                resumo = self.sanitize_text(resumo)
+                
+                if Noticias().confirm_noticia(headline):
+                    continue
+                
+                else:
+                    resumo = getattr(entrie, tag_texto)
+                    resumo = self.sanitize_text(resumo)
+                    
+                    headline, resumo, local, fake = self.transformar_fakenews(headline, resumo)
 
-                headline, resumo, local, fake = self.transformar_fakenews(headline, resumo)
 
-
-                Noticias().insert(
-                    ID_Parceiro=ID_Parceiro,
-                    Link_Publicacao=getattr(entrie, "link"),
-                    Headline_Publicacao=f"""{headline}""",
-                    Resumo_Publicacao=f"""{resumo}""",
-                    Data_Publicacao_Parceiro=strftime(
-                        FORMAT_DATA, entrie.published_parsed
-                    ),
-                    Fake = fake,
-                    Fake_Local = local,
-                )
+                    Noticias().insert(
+                        ID_Parceiro=ID_Parceiro,
+                        Link_Publicacao=getattr(entrie, "link"),
+                        Headline_Publicacao=f"""{headline}""",
+                        Resumo_Publicacao=f"""{resumo}""",
+                        Data_Publicacao_Parceiro=strftime(
+                            FORMAT_DATA, entrie.published_parsed
+                        ),
+                        Fake = fake,
+                        Fake_Local = local,
+                    )
             Parceiros().update_ult_raspagem(ID_Parceiro)
 
     def sync_formatos(self):
