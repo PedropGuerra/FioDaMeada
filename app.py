@@ -15,24 +15,26 @@ app = Flask(__name__)
 
 @app.route("/api/noticias", methods=["GET"])
 def get_noticias():
-    return Response(status=200)
-    # logging.info(f"Início Req, CPU(%): {psutil.cpu_percent(4)} / RAM(%): {psutil.virtual_memory()[2]} / RAM(GB): {psutil.virtual_memory()[3]/1000000000}")
+    # return Response(status=200)
+    logging.info(f"Início Req, CPU(%): {psutil.cpu_percent(4)} / RAM(%): {psutil.virtual_memory()[2]} / RAM(GB): {psutil.virtual_memory()[3]/1000000000}")
     
-    # args = request.args.get
-    # # login_database(request.args.get("API_KEY"))
+    args = request.args.get
+    # login_database(request.args.get("API_KEY"))
     # SQL.connect_db(user = "sendpulse", password=request.args.get("API_KEY"))
     
-    # logging.info(f"Connect DB, CPU(%): {psutil.cpu_percent(4)} / RAM(%): {psutil.virtual_memory()[2]} / RAM(GB): {psutil.virtual_memory()[3]/1000000000}")
+    logging.info(f"Connect DB, CPU(%): {psutil.cpu_percent(4)} / RAM(%): {psutil.virtual_memory()[2]} / RAM(GB): {psutil.virtual_memory()[3]/1000000000}")
 
-    # contact_id = args("contact_id")
-    # if not contact_id:
-    #     return Response("error", status=400)
+    contact_id = args("contact_id")
+    if not contact_id:
+        return Response("error", status=400)
 
-    # qtd_noticias = int(args("qtd_noticias")) if args("qtd_noticias") else None
-    # qtd_fakenews = int(args("qtd_fakenews")) if args("qtd_fakenews") else None
-    # qtd_rodadas = int(args("qtd_rodadas")) if args("qtd_rodadas") else None
-    # producao = args("producao") if args("producao") else None
+    qtd_noticias = int(args("qtd_noticias")) if args("qtd_noticias") else None
+    qtd_fakenews = int(args("qtd_fakenews")) if args("qtd_fakenews") else None
+    qtd_rodadas = int(args("qtd_rodadas")) if args("qtd_rodadas") else None
+    producao = args("producao") if args("producao") else None
     
+    return [qtd_noticias, qtd_fakenews, qtd_rodadas, producao]
+
     # logging.info(f"Args Lidos, CPU(%): {psutil.cpu_percent(4)} / RAM(%): {psutil.virtual_memory()[2]} / RAM(GB): {psutil.virtual_memory()[3]/1000000000}")
 
     # # API_SendPulse = Auth_SendPulse()
