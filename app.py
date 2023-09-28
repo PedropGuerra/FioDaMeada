@@ -300,7 +300,7 @@ def enviar_mensagens(dia_semana):
 @app.route("/api/noticias", methods=["GET"])
 def get_noticias():
     args = request.args.get
-    login_database(request.args.get("API_KEY"))
+    # login_database(request.args.get("API_KEY"))
 
     contact_id = args("contact_id")
     if not contact_id:
