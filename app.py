@@ -3,15 +3,25 @@ import SCRIPTS.sql_fiodameada as SQL
 from SCRIPTS.integracao import Auth_SendPulse
 from threading import Thread
 import random
+import logging
+import psutil
+
+
+
+logging.basicConfig(level=logging.INFO)
 
 app = Flask(__name__)
 
 
 @app.route("/api/noticias", methods=["GET"])
 def get_noticias():
+    logging.info(f"Início Req, CPU(%): {psutil.cpu_percent()} / RAM(%): {psutil.virtual_memory()[2]} / RAM(GB): {psutil.virtual_memory()[3]/1000000000}")
+    
     args = request.args.get
     # login_database(request.args.get("API_KEY"))
     SQL.connect_db(user = "sendpulse", password=request.args.get("API_KEY"))
+    
+    logging.info(f"Connect DB, CPU(%): {psutil.cpu_percent()} / RAM(%): {psutil.virtual_memory()[2]} / RAM(GB): {psutil.virtual_memory()[3]/1000000000}")
 
     contact_id = args("contact_id")
     if not contact_id:
@@ -21,6 +31,8 @@ def get_noticias():
     qtd_fakenews = int(args("qtd_fakenews")) if args("qtd_fakenews") else None
     qtd_rodadas = int(args("qtd_rodadas")) if args("qtd_rodadas") else None
     producao = args("producao") if args("producao") else None
+    
+    logging.info(f"Args Lidos, CPU(%): {psutil.cpu_percent()} / RAM(%): {psutil.virtual_memory()[2]} / RAM(GB): {psutil.virtual_memory()[3]/1000000000}")
 
     # API_SendPulse = Auth_SendPulse()
     # preferencias_id = API_SendPulse.get_preferencias(contact_id)
@@ -34,6 +46,8 @@ def get_noticias():
         "only_fake": qtd_fakenews and not qtd_noticias,
         "fake+rodadas": qtd_fakenews and qtd_noticias and not qtd_rodadas,
     }
+    
+    logging.info(f"Condicoes Dict, CPU(%): {psutil.cpu_percent()} / RAM(%): {psutil.virtual_memory()[2]} / RAM(GB): {psutil.virtual_memory()[3]/1000000000}")
 
     # return condicoes_dict
 
@@ -65,6 +79,7 @@ def get_noticias():
         if qtd_noticias
         else None
     )
+    
 
     db_fakenews = (
         list(
@@ -81,6 +96,8 @@ def get_noticias():
         if qtd_fakenews
         else None
     )
+
+    logging.info(f"Select Noticias + Fake News, CPU(%): {psutil.cpu_percent()} / RAM(%): {psutil.virtual_memory()[2]} / RAM(GB): {psutil.virtual_memory()[3]/1000000000}")
 
     resp_noticias = {}
     resp_gabarito = {}
@@ -138,4 +155,8 @@ def get_noticias():
             target=atualizar_noticias, args=(db_noticias, db_fakenews, contact_id)
         ).start()
 
+    logging.info(f"Response Criado, CPU(%): {psutil.cpu_percent()} / RAM(%): {psutil.virtual_memory()[2]} / RAM(GB): {psutil.virtual_memory()[3]/1000000000}")
+    
     return response
+    
+    

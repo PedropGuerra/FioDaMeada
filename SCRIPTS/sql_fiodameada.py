@@ -5,7 +5,7 @@ import bleach
 import SCRIPTS.secrets as os
 import logging
 
-logging.basicConfig(level=logging.INFO, filename="logs.log", format="%(asctime)s - %(levelname)s - %(funcName)s - %(message)s")
+logging.basicConfig(level=logging.INFO)
 
 
 MAIN_DATABASE = os.getenv("DB_MAIN_DATABASE")
@@ -48,7 +48,7 @@ def executar_comando_sql(sql: str, values=None):
         mysql_cursor.execute(sql, values)
 
     else:
-        logging.error(f"Não foi possível executar o comando SQL: {sql} + {values}")
+        #logging.error(f"Não foi possível executar o comando SQL: {sql} + {values}")
         return None
 
     if "SELECT" in sql or "select" in sql:
@@ -166,7 +166,7 @@ class SendPulse_Flows:
                     return executar_comando_sql(select_from)
 
                 else:
-                    logging.error(f"Dia da Semana {Dia_Semana} inválido")
+                    #logging.error(f"Dia da Semana {Dia_Semana} inválido")
                     return None
 
             case "todos":
@@ -543,7 +543,7 @@ class Noticias:
 
             case "qtd_noticias":
                 if qtd_noticias:
-                    logging.info(select_from + where_noticia + limit_random_noticia)
+                    #loggin.info(select_from + where_noticia + limit_random_noticia)
                     return executar_comando_sql(
                         select_from + where_noticia + limit_random_noticia
                     )
@@ -553,7 +553,7 @@ class Noticias:
 
             case "qtd_fakenews":
                 if qtd_fakenews:
-                    logging.info(select_from + where_fake + limit_random_fake)
+                    #loggin.info(select_from + where_fake + limit_random_fake)
                     return executar_comando_sql(
                         select_from + where_fake + limit_random_fake
                     )
@@ -579,7 +579,7 @@ class Noticias:
         """
 
         if int(Status) < 0 or int(Status) > 2:
-            logging.error("Status de Notícias {Status} inválido")
+            #logging.error("Status de Notícias {Status} inválido")
             return None
 
         columns_dict = {

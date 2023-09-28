@@ -6,7 +6,7 @@ from SCRIPTS.sql_fiodameada import *
 import SCRIPTS.secrets as os
 import logging
 
-logging.basicConfig(level=logging.INFO, filename="logs.log", format="%(asctime)s - %(levelname)s - %(funcName)s - %(message)s")
+logging.basicConfig(level=logging.INFO)
 
 
 CLIENT_ID = os.getenv("SP_CLIENT_ID")
