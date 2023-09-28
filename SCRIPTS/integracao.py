@@ -60,8 +60,13 @@ class Auth_SendPulse:
             headers=self.define_header(),
         ).json()
 
+        if not "data" in request:
+            logging.error("Requisição para API SendPulse não retornou objeto data")
+            logging.debug(request)
+            return None
         
-        if len(request["data"]["tags"]) >= 1:
+        
+        elif len(request["data"]["tags"]) >= 1:
             response = list(
                 map(
                     lambda tag: Preferencia_Usuarios().confirm(Nome_Preferencia=tag),
@@ -76,7 +81,7 @@ class Auth_SendPulse:
             return response
 
         else:
-            logging.critical(f"Preferências do usuário {contact_id} inexistentes")
+            logging.error(f"Preferências do usuário {contact_id} inexistentes")
             return None
 
     def get_contatos(self):
@@ -98,7 +103,7 @@ class Auth_SendPulse:
         url = self.default_api_link + "/flows/run"
 
         for contact in contacts:
-            params = {"contact_id": contact_id, "flow_id": flow_id}
+            params = {"contact_id": contact, "flow_id": flow_id}
             requests.post(url, params=params, headers=self.define_header())
 
     def sync_formatos(self):
