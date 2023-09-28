@@ -33,16 +33,17 @@ def get_noticias():
     qtd_rodadas = int(args("qtd_rodadas")) if args("qtd_rodadas") else None
     producao = args("producao") if args("producao") else None
     
+
+    logging.info(f"Args Lidos, CPU(%): {psutil.cpu_percent(4)} / RAM(%): {psutil.virtual_memory()[2]} / RAM(GB): {psutil.virtual_memory()[3]/1000000000}")
+
+    API_SendPulse = Auth_SendPulse()
+    preferencias_id = API_SendPulse.get_preferencias(contact_id)
+
+    if not preferencias_id:
+        abort(400, "O usuário não possui preferências cadastradas")
+
     return [qtd_noticias, qtd_fakenews, qtd_rodadas, producao]
-
-    # logging.info(f"Args Lidos, CPU(%): {psutil.cpu_percent(4)} / RAM(%): {psutil.virtual_memory()[2]} / RAM(GB): {psutil.virtual_memory()[3]/1000000000}")
-
-    # # API_SendPulse = Auth_SendPulse()
-    # # preferencias_id = API_SendPulse.get_preferencias(contact_id)
-
-    # # if not preferencias_id:
-    # #     abort(400, "O usuário não possui preferências cadastradas")
-
+    
     # condicoes_dict = {
     #     "rodadas+noticias+fake": qtd_rodadas and qtd_fakenews and qtd_noticias,
     #     "only_noticias": qtd_noticias and not qtd_fakenews,
