@@ -322,114 +322,122 @@ def get_noticias():
 
     if not preferencias_id:
         abort(400, "O usuário não possui preferências cadastradas")
-
-    condicoes_dict = {
-        "rodadas+noticias+fake": qtd_rodadas and qtd_fakenews and qtd_noticias,
-        "only_noticias": qtd_noticias and not qtd_fakenews,
-        "only_fake": qtd_fakenews and not qtd_noticias,
-        "fake+rodadas": qtd_fakenews and qtd_noticias and not qtd_rodadas,
+        
+    return {
+        "Contact ID": contact_id,
+        "Qtd_Noticias" : qtd_noticias,
+        "Qtd_FakeNews" : qtd_fakenews,
+        "Qtd_Rodadas" : qtd_rodadas,
+        "Producao" : producao,
     }
+
+    # condicoes_dict = {
+    #     "rodadas+noticias+fake": qtd_rodadas and qtd_fakenews and qtd_noticias,
+    #     "only_noticias": qtd_noticias and not qtd_fakenews,
+    #     "only_fake": qtd_fakenews and not qtd_noticias,
+    #     "fake+rodadas": qtd_fakenews and qtd_noticias and not qtd_rodadas,
+    # }
     
-    map(lambda condicao: logging.info(f"{condicao}: {condicoes_dict[condicao]}"), condicoes_dict)
+    # map(lambda condicao: logging.info(f"{condicao}: {condicoes_dict[condicao]}"), condicoes_dict)
 
-    def formatacao_dict(noticia):
-        return {
-            "id": noticia[0],
-            "fake": noticia[5],
-            "headline": noticia[3],
-            "resumo": noticia[4],
-            "link": noticia[2],
-            "parceiro": SQL.Parceiros().confirm(ID_Parceiro=noticia[1]),
-            "fake_local": noticia[6],
-        }
+    # def formatacao_dict(noticia):
+    #     return {
+    #         "id": noticia[0],
+    #         "fake": noticia[5],
+    #         "headline": noticia[3],
+    #         "resumo": noticia[4],
+    #         "link": noticia[2],
+    #         "parceiro": SQL.Parceiros().confirm(ID_Parceiro=noticia[1]),
+    #         "fake_local": noticia[6],
+    #     }
 
-    db_noticias = (
-        list(
-            map(
-                formatacao_dict,
-                SQL.Noticias().select(
-                    formato="qtd_noticias",
-                    qtd_noticias=qtd_noticias,
-                    contact_id=contact_id,
-                    preferencias_id=preferencias_id,
-                ),
-            )
-        )
-        if qtd_noticias
-        else None
-    )
+    # db_noticias = (
+    #     list(
+    #         map(
+    #             formatacao_dict,
+    #             SQL.Noticias().select(
+    #                 formato="qtd_noticias",
+    #                 qtd_noticias=qtd_noticias,
+    #                 contact_id=contact_id,
+    #                 preferencias_id=preferencias_id,
+    #             ),
+    #         )
+    #     )
+    #     if qtd_noticias
+    #     else None
+    # )
 
-    db_fakenews = (
-        list(
-            map(
-                formatacao_dict,
-                SQL.Noticias().select(
-                    formato="qtd_fakenews",
-                    qtd_fakenews=qtd_fakenews,
-                    contact_id=contact_id,
-                    preferencias_id=preferencias_id,
-                ),
-            )
-        )
-        if qtd_fakenews
-        else None
-    )
+    # db_fakenews = (
+    #     list(
+    #         map(
+    #             formatacao_dict,
+    #             SQL.Noticias().select(
+    #                 formato="qtd_fakenews",
+    #                 qtd_fakenews=qtd_fakenews,
+    #                 contact_id=contact_id,
+    #                 preferencias_id=preferencias_id,
+    #             ),
+    #         )
+    #     )
+    #     if qtd_fakenews
+    #     else None
+    # )
 
-    resp_noticias = {}
-    resp_gabarito = {}
-    response = {"Noticias": resp_noticias, "Gabarito": resp_gabarito}
+    # resp_noticias = {}
+    # resp_gabarito = {}
+    # response = {"Noticias": resp_noticias, "Gabarito": resp_gabarito}
 
-    if condicoes_dict["rodadas+noticias+fake"]:
-        for rodada in range(1, qtd_rodadas + 1):
-            noticias_por_rodada = min(qtd_noticias // qtd_rodadas, len(db_noticias))
-            fakenews_por_rodada = min(qtd_fakenews // qtd_rodadas, len(db_fakenews))
+    # if condicoes_dict["rodadas+noticias+fake"]:
+    #     for rodada in range(1, qtd_rodadas + 1):
+    #         noticias_por_rodada = min(qtd_noticias // qtd_rodadas, len(db_noticias))
+    #         fakenews_por_rodada = min(qtd_fakenews // qtd_rodadas, len(db_fakenews))
 
-            rodada_noticias = random.sample(
-                db_fakenews, fakenews_por_rodada
-            ) + random.sample(db_noticias, noticias_por_rodada)
-            random.shuffle(rodada_noticias)
+    #         rodada_noticias = random.sample(
+    #             db_fakenews, fakenews_por_rodada
+    #         ) + random.sample(db_noticias, noticias_por_rodada)
+    #         random.shuffle(rodada_noticias)
 
-            for i, noticia in enumerate(rodada_noticias):
-                resp_noticias[f"noticia{i + 1}"] = noticia
-                if noticia["fake"] == 1:
-                    resp_gabarito[f"rodada{i+1}"] = {
-                        "id": noticia["id"],
-                        "local": noticia["fake_local"],
-                    }
+    #         for i, noticia in enumerate(rodada_noticias):
+    #             resp_noticias[f"noticia{i + 1}"] = noticia
+    #             if noticia["fake"] == 1:
+    #                 resp_gabarito[f"rodada{i+1}"] = {
+    #                     "id": noticia["id"],
+    #                     "local": noticia["fake_local"],
+    #                 }
 
-    elif condicoes_dict["only_noticias"]:
-        for i, noticia in enumerate(db_noticias):
-            response["Noticias"][f"noticia{i + 1}"] = noticia
+    # elif condicoes_dict["only_noticias"]:
+    #     for i, noticia in enumerate(db_noticias):
+    #         response["Noticias"][f"noticia{i + 1}"] = noticia
 
-    elif condicoes_dict["only_fake"]:
-        for i, fake in enumerate(db_fakenews):
-            response["Noticias"][f"noticia{i + 1}"] = fake
+    # elif condicoes_dict["only_fake"]:
+    #     for i, fake in enumerate(db_fakenews):
+    #         response["Noticias"][f"noticia{i + 1}"] = fake
 
-    elif condicoes_dict["fake+rodadas"]:
+    # elif condicoes_dict["fake+rodadas"]:
 
-        for i, noticia in enumerate(db_noticias + db_fakenews):
-            match noticia["fake"]:
-                case 1:
-                    resp_noticias[f"noticia{i+1}"] = noticia
-                    resp_gabarito[f"rodada{i + 1}"] = {
-                        "id": noticia["id"],
-                        "local": noticia["fake_local"],
-                    }
+    #     for i, noticia in enumerate(db_noticias + db_fakenews):
+    #         match noticia["fake"]:
+    #             case 1:
+    #                 resp_noticias[f"noticia{i+1}"] = noticia
+    #                 resp_gabarito[f"rodada{i + 1}"] = {
+    #                     "id": noticia["id"],
+    #                     "local": noticia["fake_local"],
+    #                 }
 
-                case 0:
-                    resp_noticias[f"noticia{i+1}"] = noticia
+    #             case 0:
+    #                 resp_noticias[f"noticia{i+1}"] = noticia
 
-    else:
-        return Response("error", status=400)
+    # else:
+    #     return Response("error", status=400)
 
-    if not "0" in producao:
-        def atualizar_noticias(db_noticias, db_fakenews, contact_id):
-            ids_noticias = [noticia["id"] for noticia in db_noticias + db_fakenews]
-            SQL.Noticias().noticias_usuario(contact_id,ids_noticias)
+    # if not "0" in producao:
+    #     def atualizar_noticias(db_noticias, db_fakenews, contact_id):
+    #         ids_noticias = [noticia["id"] for noticia in db_noticias + db_fakenews]
+    #         SQL.Noticias().noticias_usuario(contact_id,ids_noticias)
 
-        Thread(
-            target=atualizar_noticias, args=(db_noticias, db_fakenews, contact_id)
-        ).start()
+    #     Thread(
+    #         target=atualizar_noticias, args=(db_noticias, db_fakenews, contact_id)
+    #     ).start()
 
-    logging.info(response)
-    return response
+    # logging.info(response)
+    # return response
