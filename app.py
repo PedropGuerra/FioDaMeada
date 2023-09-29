@@ -21,7 +21,7 @@ def get_noticias():
     
     args = request.args.get
     # login_database(request.args.get("API_KEY"))
-    SQL.connect_db(user = "sendpulse", password=request.args.get("API_KEY"))
+    # SQL.connect_db(user = "sendpulse", password=request.args.get("API_KEY"))
     
     logging.info(f"Connect DB, CPU(%): {psutil.cpu_percent(4)} / RAM(%): {psutil.virtual_memory()[2]} / RAM(GB): {psutil.virtual_memory()[3]/1000000000}")
 
