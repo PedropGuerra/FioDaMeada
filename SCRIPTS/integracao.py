@@ -4,7 +4,6 @@ from SCRIPTS.sql_fiodameada import *
 import SCRIPTS.secrets as os
 import logging
 from flask import abort
-import asyncio
 import httpx
 
 logging.basicConfig(level=logging.INFO)
@@ -43,7 +42,7 @@ class Auth_SendPulse:
             "Content-Type": "application/json",
         }
 
-    async def get_preferencias(self, contact_id: str):
+    def get_preferencias(self, contact_id: str):
         url = self.default_api_link + "/contacts/get"
         params = {"id": contact_id}
         headers=self.define_header()

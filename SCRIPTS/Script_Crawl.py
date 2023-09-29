@@ -2,7 +2,6 @@ import feedparser
 from SCRIPTS.sql_fiodameada import (
     Noticias,
     Parceiros,
-    connect_db,
     json_to_dict,
     FORMAT_DATA,
 )

@@ -10,6 +10,8 @@ import random
 import SCRIPTS.secrets as os
 from time import strftime
 import logging
+from testes.measure_time import measure_time as mtime
+from testes.measure_time import show_measure
 import asyncio
 
 logging.basicConfig(level=logging.INFO)
@@ -201,6 +203,7 @@ def associacao_noticias():
         noticias_string = """<form method="POST">
         <input type="submit" value="Enviar">"""
         options_pref_string = """<option></option>"""
+        options_format_string = """<option></option>"""
 
         noticias = [None]
         preferencias = SQL.Preferencia_Usuarios().select()
@@ -299,8 +302,12 @@ def enviar_mensagens(dia_semana):
 
 @app.route("/api/noticias", methods=["GET"])
 def get_noticias():
+    mtime("database", "init")
     login_database(request.args.get("API_KEY"))
-
+    logging.debug("DB connected Successfully")
+    mtime("database", "end")
+    
+    mtime("args", "init")
     args = request.args.get
 
     contact_id = args("contact_id")
@@ -311,18 +318,27 @@ def get_noticias():
     qtd_fakenews = int(args("qtd_fakenews")) if args("qtd_fakenews") else None
     qtd_rodadas = int(args("qtd_rodadas")) if args("qtd_rodadas") else None
     producao = args("producao") if args("producao") else None
-
-
+    mtime("args", "end")
+    
+    
+    mtime("API", "init")
     API_SendPulse = Auth_SendPulse()
     preferencias_id = API_SendPulse.get_preferencias(contact_id)
+
+    # if not preferencias_id:
+    #     abort(400, "O usuário não possui preferências cadastradas")
+    mtime("API", "end")
     
+
+    mtime("condicoes", "init")
     condicoes_dict = {
         "rodadas+noticias+fake": qtd_rodadas and qtd_fakenews and qtd_noticias,
         "only_noticias": qtd_noticias and not qtd_fakenews,
         "only_fake": qtd_fakenews and not qtd_noticias,
         "fake+rodadas": qtd_fakenews and qtd_noticias and not qtd_rodadas,
     }
-
+    mtime("condicoes", "end")
+    
 
     def formatacao_dict(noticia):
         return {
@@ -335,6 +351,8 @@ def get_noticias():
             "fake_local": noticia[6],
         }
 
+
+    mtime("select noticias", "init")
     db_noticias = (
         list(
             map(
@@ -366,13 +384,17 @@ def get_noticias():
         if qtd_fakenews
         else None
     )
+    mtime("select noticias", "end")
     
+    
+    
+    mtime("response_maker", "init")
     resp_noticias = {}
     resp_gabarito = {}
     response = {"Noticias": resp_noticias, "Gabarito": resp_gabarito}
 
     if condicoes_dict["rodadas+noticias+fake"]:
-        for _ in range(1, qtd_rodadas + 1):
+        for rodada in range(1, qtd_rodadas + 1):
             noticias_por_rodada = min(qtd_noticias // qtd_rodadas, len(db_noticias))
             fakenews_por_rodada = min(qtd_fakenews // qtd_rodadas, len(db_fakenews))
 
@@ -414,13 +436,40 @@ def get_noticias():
     else:
         return Response("error", status=400)
 
-    if not "0" in producao:
-        async def atualizar_noticias(db_noticias, db_fakenews, contact_id):
-            if db_fakenews or db_noticias:
-                ids_noticias = [noticia["id"] for noticia in db_noticias + db_fakenews]
-                SQL.Noticias().noticias_usuario(contact_id,ids_noticias)
-
-        asyncio.run(atualizar_noticias(db_noticias, db_fakenews, contact_id))
+    # if not "0" in producao:
+    async def atualizar_noticias(db_noticias, db_fakenews, contact_id):
+        if db_noticias or db_fakenews:
+            ids_noticias = [noticia["id"] for noticia in db_noticias + db_fakenews]
+            # SQL.Noticias().noticias_usuario(contact_id,ids_noticias)
+            logging.info(ids_noticias)
+    # Thread(
+    #     target=atualizar_noticias, args=(db_noticias, db_fakenews, contact_id)
+    # ).start()
     
+    asyncio.run(atualizar_noticias(db_noticias, db_fakenews, contact_id))
         
+
+
+    mtime("response_maker", "end")
+    # logging.info(f"Response in {time.time() - start_time} / contact_id: {contact_id} / producao: {producao}")
+    
+    measures = show_measure()
+    
+    for identifier in measures:
+        logging.info(f"Measure {identifier}: {measures[identifier]['result']}")
+    
+# """
+# INFO:root:Measure middle: 0.0010404586791992188
+# INFO:root:Measure database: 1.2747986316680908
+# INFO:root:Measure args: 0.0
+# INFO:root:Measure API: 1.973294734954834
+# INFO:root:Measure condicoes: 0.0
+# INFO:root:Measure select noticias: 2.392369270324707
+# INFO:root:Measure response_maker: 0.0
+# """
+    
+    
     return response
+
+if __name__ == "__main__":
+    app.run(debug=True)

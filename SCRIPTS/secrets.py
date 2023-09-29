@@ -1,5 +1,3 @@
-import os
-
 with open("env_variables.txt", "r") as txt:
     global txt_dict
     txt = list(map(lambda index: index.replace("\n", "").split(":"), txt.readlines()))
