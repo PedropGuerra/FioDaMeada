@@ -8,8 +8,10 @@ import SCRIPTS.Script_Crawl as Script_Crawl
 from threading import Thread
 import random
 import SCRIPTS.secrets as os
-import time
+from time import strftime
 import logging
+from SCRIPTS.measure_time import measure_time as mtime
+
 
 logging.basicConfig(level=logging.INFO)
 
@@ -287,7 +289,7 @@ def enviar_mensagens(dia_semana):
 
         SQL.Envios().insert(
             Dia_Semana=dia_semana,
-            Data_Envio=time.strftime(SQL.FORMAT_DATA),
+            Data_Envio=strftime(SQL.FORMAT_DATA),
             ID_Flow_API=flow,
         )
 
@@ -299,7 +301,6 @@ def enviar_mensagens(dia_semana):
 
 @app.route("/api/noticias", methods=["GET"])
 def get_noticias():
-    start_time = time.time()
     args = request.args.get
     login_database(request.args.get("API_KEY"))
 

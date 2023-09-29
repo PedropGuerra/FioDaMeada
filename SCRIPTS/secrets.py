@@ -6,13 +6,10 @@ with open("env_variables.txt", "r") as txt:
     txt_dict = {index[0]: index[1] for index in txt}
 
 
-def getenv(key):
-    try:
-        return txt_dict[key]
+def getenv(key, default=None):
+    return txt_dict[key] if key in txt_dict else default
 
-    except:
-        return None
-
+    
 
 def setenv(key, value) -> None:
     # os.environ[f"{key}"] = value

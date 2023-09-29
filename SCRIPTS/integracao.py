@@ -1,10 +1,11 @@
-from time import strftime
-from random import choices
-from datetime import date, datetime, timedelta
+from datetime import datetime, timedelta
 import requests
 from SCRIPTS.sql_fiodameada import *
 import SCRIPTS.secrets as os
 import logging
+from flask import abort
+import asyncio
+import httpx
 
 logging.basicConfig(level=logging.INFO)
 
@@ -20,31 +21,20 @@ class Auth_SendPulse:
         self.auth()
 
     def auth(self):
-        try:
-            os.getenv('SP_AUTH_KEY')
-            os.getenv('SP_AUTH_EXPIRE')
-            
-            if not os.getenv('SP_AUTH_KEY') or datetime.strptime(os.getenv('SP_AUTH_EXPIRE'), "%Y-%m-%d %H:%M:%S.%f") < datetime.now():
-                data = {
-                    "grant_type": "client_credentials",
-                    "client_id": CLIENT_ID,
-                    "client_secret": CLIENT_SECRET,
-                }
+        if not os.getenv('SP_AUTH_KEY') or datetime.strptime(os.getenv('SP_AUTH_EXPIRE'), "%Y-%m-%d %H:%M:%S.%f") <= datetime.now():
+            data = {
+                "grant_type": "client_credentials",
+                "client_id": CLIENT_ID,
+                "client_secret": CLIENT_SECRET,
+            }
 
-                request = requests.post(
-                    "https://api.sendpulse.com/oauth/access_token", data=data
-                ).json()
+            request = requests.post(
+                "https://api.sendpulse.com/oauth/access_token", data=data
+            ).json()
 
-                os.setenv('SP_AUTH_KEY', request["access_token"])
-                os.setenv("SP_AUTH_EXPIRE", datetime.now() + timedelta(seconds=request["expire"] - 600))
-                logging.info(f"{os.getenv('SP_AUTH_KEY')} - {os.getenv('SP_AUTH_EXPIRE')}")
-            
-            else:
-                pass
-            
-        except:
-            pass
-        
+            os.setenv('SP_AUTH_KEY', request["access_token"])
+            os.setenv("SP_AUTH_EXPIRE", str(datetime.now() + timedelta(seconds=request["expires_in"] - 600)))
+            logging.info(f"{os.getenv('SP_AUTH_KEY')} - {os.getenv('SP_AUTH_EXPIRE')}") 
         
 
     def define_header(self):
@@ -53,36 +43,48 @@ class Auth_SendPulse:
             "Content-Type": "application/json",
         }
 
-    def get_preferencias(self, contact_id: str):
-        request = requests.get(
-            self.default_api_link + "/contacts/get",
-            params={"id": contact_id},
-            headers=self.define_header(),
-        ).json()
+    async def get_preferencias(self, contact_id: str):
+        url = self.default_api_link + "/contacts/get"
+        params = {"id": contact_id}
+        headers=self.define_header()
+        request = httpx.get(url=url, params=params, headers=headers).json()
+        
+        conditions = ("data" in request, len(request["data"]["tags"]) >= 1)
+        request = [Preferencia_Usuarios().confirm(Nome_Preferencia=tag)[0] for tag in request["data"]["tags"]] if all(conditions) else abort(400, "Problemas com API SendPulse")
+        
+        logging.info(request)
+        
+        return request
 
-        if not "data" in request:
-            logging.error("Requisição para API SendPulse não retornou objeto data")
-            logging.debug(request)
-            return None
+        
+        # request = requests.get(
+        #     self.default_api_link + "/contacts/get",
+        #     params={"id": contact_id},
+        #     headers=self.define_header(),
+        # ).json()
+
+        # if not "data" in request:
+        #     logging.error("Requisição para API SendPulse não retornou objeto data")
+        #     abort(400, "Problemas com API SendPulse")
         
         
-        elif len(request["data"]["tags"]) >= 1:
-            response = list(
-                map(
-                    lambda tag: Preferencia_Usuarios().confirm(Nome_Preferencia=tag),
-                    request["data"]["tags"],
-                )
-            )
+        # elif len(request["data"]["tags"]) >= 1:
+        #     response = list(
+        #         map(
+        #             lambda tag: Preferencia_Usuarios().confirm(Nome_Preferencia=tag),
+        #             request["data"]["tags"],
+        #         )
+        #     )
 
-            response = list(map(lambda x: x[0], response))
+        #     response = list(map(lambda x: x[0], response))
             
-            logging.info(response)
+        #     logging.info(response)
 
-            return response
+        #     return response
 
-        else:
-            logging.error(f"Preferências do usuário {contact_id} inexistentes")
-            return None
+        # else:
+        #     logging.error(f"Preferências do usuário {contact_id} inexistentes")
+        #     abort(400, "O usuário não possui preferências cadastradas")
 
     def get_contatos(self):
         preferencias = map(lambda pref: pref[1], Preferencia_Usuarios().select())
