@@ -36,7 +36,7 @@ liveness_check:
   failure_threshold: 4
   success_threshold: 2
 readiness_check:
-  check_interval_sec: '5'
+  check_interval_sec: '350'
   timeout_sec: '300'
   failure_threshold: 2
   success_threshold: 2
