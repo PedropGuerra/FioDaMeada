@@ -59,54 +59,54 @@ def get_noticias():
 
     
 
-    # def formatacao_dict(noticia):
-    #     return {
-    #         "id": noticia[0],
-    #         "fake": noticia[5],
-    #         "headline": noticia[3],
-    #         "resumo": noticia[4],
-    #         "link": noticia[2],
-    #         "parceiro": "Autor",
-    #         "fake_local": noticia[6],
-    #     }
+    def formatacao_dict(noticia):
+        return {
+            "id": noticia[0],
+            "fake": noticia[5],
+            "headline": noticia[3],
+            "resumo": noticia[4],
+            "link": noticia[2],
+            "parceiro": SQL.Parceiros().confirm(ID_Parceiro=noticia[1]),
+            "fake_local": noticia[6],
+        }
 
-    # db_noticias = (
-    #     list(
-    #         map(
-    #             formatacao_dict,
-    #             SQL.Noticias().select(
-    #                 formato="qtd_noticias",
-    #                 qtd_noticias=qtd_noticias,
-    #                 contact_id=contact_id,
-    #                 preferencias_id=[[1],[2],[3]],
-    #             ),
-    #         )
-    #     )
-    #     if qtd_noticias
-    #     else None
-    # )
+    db_noticias = (
+        list(
+            map(
+                formatacao_dict,
+                SQL.Noticias().select(
+                    formato="qtd_noticias",
+                    qtd_noticias=qtd_noticias,
+                    contact_id=contact_id,
+                    preferencias_id=preferencias_id,
+                ),
+            )
+        )
+        if qtd_noticias
+        else None
+    )
     
 
-    # db_fakenews = (
-    #     list(
-    #         map(
-    #             formatacao_dict,
-    #             SQL.Noticias().select(
-    #                 formato="qtd_fakenews",
-    #                 qtd_fakenews=qtd_fakenews,
-    #                 contact_id=contact_id,
-    #                 preferencias_id=[[1],[2],[3]],
-    #             ),
-    #         )
-    #     )
-    #     if qtd_fakenews
-    #     else None
-    # )
+    db_fakenews = (
+        list(
+            map(
+                formatacao_dict,
+                SQL.Noticias().select(
+                    formato="qtd_fakenews",
+                    qtd_fakenews=qtd_fakenews,
+                    contact_id=contact_id,
+                    preferencias_id=preferencias_id,
+                ),
+            )
+        )
+        if qtd_fakenews
+        else None
+    )
 
     # logging.info(f"Select Noticias + Fake News, CPU(%): {psutil.cpu_percent(4)} / RAM(%): {psutil.virtual_memory()[2]} / RAM(GB): {psutil.virtual_memory()[3]/1000000000}")
     
-    db_noticias = test.read_noticias("noticias.txt")
-    db_fakenews = test.read_noticias("noticias.txt")
+    # db_noticias = test.read_noticias("noticias.txt")
+    # db_fakenews = test.read_noticias("noticias.txt")
         
 
 
