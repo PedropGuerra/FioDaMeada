@@ -37,11 +37,11 @@ def get_noticias():
 
     logging.info(f"Args Lidos, CPU(%): {psutil.cpu_percent(4)} / RAM(%): {psutil.virtual_memory()[2]} / RAM(GB): {psutil.virtual_memory()[3]/1000000000}")
 
-    # API_SendPulse = Auth_SendPulse()
-    # preferencias_id = API_SendPulse.get_preferencias(contact_id)
+    API_SendPulse = Auth_SendPulse()
+    preferencias_id = API_SendPulse.get_preferencias(contact_id)
 
-    # if not preferencias_id:
-    #     abort(400, "O usuário não possui preferências cadastradas")
+    if not preferencias_id:
+        abort(400, "O usuário não possui preferências cadastradas")
 
     logging.info([qtd_noticias, qtd_fakenews, qtd_rodadas, producao])
     # return [qtd_noticias, qtd_fakenews, qtd_rodadas, producao]
