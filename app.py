@@ -5,6 +5,7 @@ from threading import Thread
 import random
 import logging
 import psutil
+import test
 
 
 
@@ -104,9 +105,10 @@ def get_noticias():
 
     # logging.info(f"Select Noticias + Fake News, CPU(%): {psutil.cpu_percent(4)} / RAM(%): {psutil.virtual_memory()[2]} / RAM(GB): {psutil.virtual_memory()[3]/1000000000}")
     
-    with open("noticias.json", "r") as txt:
-        db_noticias = json.loads(txt.read())
-        db_fakenews = json.loads(txt.read())
+    db_noticias = test.read_noticias("noticias.txt")
+    db_fakenews = test.read_noticias("noticias.txt")
+        
+
 
     logging.info(f"Select Noticias + Fake News, CPU(%): {psutil.cpu_percent(4)} / RAM(%): {psutil.virtual_memory()[2]} / RAM(GB): {psutil.virtual_memory()[3]/1000000000}")
 
