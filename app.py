@@ -114,48 +114,51 @@ def get_noticias():
     resp_gabarito = {}
     response = {"Noticias": resp_noticias, "Gabarito": resp_gabarito}
 
-    if condicoes_dict["rodadas+noticias+fake"]:
-        for rodada in range(1, qtd_rodadas + 1):
-            noticias_por_rodada = min(qtd_noticias // qtd_rodadas, len(db_noticias))
-            fakenews_por_rodada = min(qtd_fakenews // qtd_rodadas, len(db_fakenews))
+    return response
 
-            rodada_noticias = random.sample(
-                db_fakenews, fakenews_por_rodada
-            ) + random.sample(db_noticias, noticias_por_rodada)
-            random.shuffle(rodada_noticias)
 
-            for i, noticia in enumerate(rodada_noticias):
-                resp_noticias[f"noticia{i + 1}"] = noticia
-                if noticia["fake"] == 1:
-                    resp_gabarito[f"rodada{i+1}"] = {
-                        "id": noticia["id"],
-                        "local": noticia["fake_local"],
-                    }
+    # if condicoes_dict["rodadas+noticias+fake"]:
+    #     for rodada in range(1, qtd_rodadas + 1):
+    #         noticias_por_rodada = min(qtd_noticias // qtd_rodadas, len(db_noticias))
+    #         fakenews_por_rodada = min(qtd_fakenews // qtd_rodadas, len(db_fakenews))
 
-    elif condicoes_dict["only_noticias"]:
-        for i, noticia in enumerate(db_noticias):
-            response["Noticias"][f"noticia{i + 1}"] = noticia
+    #         rodada_noticias = random.sample(
+    #             db_fakenews, fakenews_por_rodada
+    #         ) + random.sample(db_noticias, noticias_por_rodada)
+    #         random.shuffle(rodada_noticias)
 
-    elif condicoes_dict["only_fake"]:
-        for i, fake in enumerate(db_fakenews):
-            response["Noticias"][f"noticia{i + 1}"] = fake
+    #         for i, noticia in enumerate(rodada_noticias):
+    #             resp_noticias[f"noticia{i + 1}"] = noticia
+    #             if noticia["fake"] == 1:
+    #                 resp_gabarito[f"rodada{i+1}"] = {
+    #                     "id": noticia["id"],
+    #                     "local": noticia["fake_local"],
+    #                 }
 
-    elif condicoes_dict["fake+rodadas"]:
+    # elif condicoes_dict["only_noticias"]:
+    #     for i, noticia in enumerate(db_noticias):
+    #         response["Noticias"][f"noticia{i + 1}"] = noticia
 
-        for i, noticia in enumerate(db_noticias + db_fakenews):
-            match noticia["fake"]:
-                case 1:
-                    resp_noticias[f"noticia{i+1}"] = noticia
-                    resp_gabarito[f"rodada{i + 1}"] = {
-                        "id": noticia["id"],
-                        "local": noticia["fake_local"],
-                    }
+    # elif condicoes_dict["only_fake"]:
+    #     for i, fake in enumerate(db_fakenews):
+    #         response["Noticias"][f"noticia{i + 1}"] = fake
 
-                case 0:
-                    resp_noticias[f"noticia{i+1}"] = noticia
+    # elif condicoes_dict["fake+rodadas"]:
 
-    else:
-        return Response("error", status=400)
+    #     for i, noticia in enumerate(db_noticias + db_fakenews):
+    #         match noticia["fake"]:
+    #             case 1:
+    #                 resp_noticias[f"noticia{i+1}"] = noticia
+    #                 resp_gabarito[f"rodada{i + 1}"] = {
+    #                     "id": noticia["id"],
+    #                     "local": noticia["fake_local"],
+    #                 }
+
+    #             case 0:
+    #                 resp_noticias[f"noticia{i+1}"] = noticia
+
+    # else:
+    #     return Response("error", status=400)
 
     # if not "0" in producao:
     #     def atualizar_noticias(db_noticias, db_fakenews, contact_id):
@@ -166,8 +169,8 @@ def get_noticias():
     #         target=atualizar_noticias, args=(db_noticias, db_fakenews, contact_id)
     #     ).start()
 
-    logging.info(f"Response Criado, CPU(%): {psutil.cpu_percent(4)} / RAM(%): {psutil.virtual_memory()[2]} / RAM(GB): {psutil.virtual_memory()[3]/1000000000}")
+    # logging.info(f"Response Criado, CPU(%): {psutil.cpu_percent(4)} / RAM(%): {psutil.virtual_memory()[2]} / RAM(GB): {psutil.virtual_memory()[3]/1000000000}")
     
-    return response
+    # return response
     
     
