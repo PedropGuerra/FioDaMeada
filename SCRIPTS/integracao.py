@@ -42,50 +42,27 @@ class Auth_SendPulse:
             "Content-Type": "application/json",
         }
 
-    def get_preferencias(self, contact_id: str):
+    def get_preferencias(self, contact_id: str, continuar = 1):
         url = self.default_api_link + "/contacts/get"
         params = {"id": contact_id}
         headers=self.define_header()
-        request = httpx.get(url=url, params=params, headers=headers).json()
+        request = requests.get(url=url, params=params, headers=headers)
         
-        conditions = ("data" in request, len(request["data"]["tags"]) >= 1)
-        request = [Preferencia_Usuarios().confirm(Nome_Preferencia=tag)[0] for tag in request["data"]["tags"]] if all(conditions) else abort(400, "Problemas com API SendPulse")
-        
-        logging.info(request)
-        
-        return request
-
-        
-        # request = requests.get(
-        #     self.default_api_link + "/contacts/get",
-        #     params={"id": contact_id},
-        #     headers=self.define_header(),
-        # ).json()
-
-        # if not "data" in request:
-        #     logging.error("Requisição para API SendPulse não retornou objeto data")
-        #     abort(400, "Problemas com API SendPulse")
-        
-        
-        # elif len(request["data"]["tags"]) >= 1:
-        #     response = list(
-        #         map(
-        #             lambda tag: Preferencia_Usuarios().confirm(Nome_Preferencia=tag),
-        #             request["data"]["tags"],
-        #         )
-        #     )
-
-        #     response = list(map(lambda x: x[0], response))
+        if request.status_code == 401:
+            continuar = 0
             
-        #     logging.info(response)
+        if continuar:
+            conditions = ("data" in request, len(request["data"]["tags"]) >= 1)
+            request = [Preferencia_Usuarios().confirm(Nome_Preferencia=tag)[0] for tag in request["data"]["tags"]] if all(conditions) else abort(400, "Problemas com API SendPulse")
+            
+            logging.info(request)
+            
+            return request
 
-        #     return response
+        self.retry_auth(self.get_preferencias, contact_id = contact_id)
 
-        # else:
-        #     logging.error(f"Preferências do usuário {contact_id} inexistentes")
-        #     abort(400, "O usuário não possui preferências cadastradas")
 
-    def get_contatos(self):
+    def get_contatos(self, continuar = 1):
         preferencias = map(lambda pref: pref[1], Preferencia_Usuarios().select())
         url = self.default_api_link + "/contacts/getByTag"
         contatos = []
@@ -94,37 +71,66 @@ class Auth_SendPulse:
             request = requests.get(
                 url, params={"tag": pref}, headers=self.define_header()
             )
+            
+            if request.status_code == 401:
+                continuar = 0
+                break
+                
+            
             contatos_temp = map(
                 lambda contact: contatos.append(contact["id"]), request["data"]
             )
 
-        return contatos
-
-    def run_flows(self, flow_id: str, contacts: list) -> None:
+        if continuar: return contatos
+        self.retry_auth(self.get_contatos)
+        
+    def run_flows(self, flow_id: str, contacts: list, continuar = 1) -> None:
         url = self.default_api_link + "/flows/run"
+
+        keep_contacts = contacts.copy()
 
         for contact in contacts:
             params = {"contact_id": contact, "flow_id": flow_id}
-            requests.post(url, params=params, headers=self.define_header())
+            request = requests.post(url, params=params, headers=self.define_header())
 
-    def sync_formatos(self):
+            if request.status_code == 401:
+                continuar = 0
+                break
+                
+            keep_contacts.pop(keep_contacts.index(contact))
+                
+        if not continuar: self.retry_auth(self.run_flows, flow_id = flow_id, contacts = keep_contacts)
+                
+    def sync_formatos(self, continuar = 1) -> None:
         url = self.default_api_link + "/flows"
 
         request_flows = requests.get(
             url, params={"bot_id": BOT_ID}, headers=self.define_header()
-        ).json()
+        )
+        
+        if request_flows.status_code == 401:
+            continuar = 0
 
-        db_sendpulse = SendPulse_Flows()
-        flows_db = db_sendpulse.select(categorizacao="todos")
 
-        for flow in request_flows["data"]:
-            confirm = db_sendpulse.confirm(ID_FLOW_API=flow["id"])
-            if confirm[1] != flow["name"]:
-                db_sendpulse.update(ID_FLOW_API=flow["id"], Nome_Flow=flow["name"])
+        if continuar:
+            db_sendpulse = SendPulse_Flows()
 
-            elif len(confirm) == 0:
-                db_sendpulse.insert(
-                    ID_FLOW_API=flow["id"],
-                    Nome_Flow=flow["name"],
-                    Data_Registro=flow["created_at"],
-                )
+            for flow in request_flows["data"]:
+                confirm = db_sendpulse.confirm(ID_FLOW_API=flow["id"])
+                if confirm[1] != flow["name"]:
+                    db_sendpulse.update(ID_FLOW_API=flow["id"], Nome_Flow=flow["name"])
+
+                elif len(confirm) == 0:
+                    db_sendpulse.insert(
+                        ID_FLOW_API=flow["id"],
+                        Nome_Flow=flow["name"],
+                        Data_Registro=flow["created_at"],
+                    )
+            
+            return
+    
+        self.retry_auth(self.sync_formatos)
+
+    def retry_auth(self, func, *args, **kwargs) -> None:
+        self.auth()
+        func(*args, **kwargs)
