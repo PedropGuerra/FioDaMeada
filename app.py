@@ -272,8 +272,7 @@ def enviar_mensagens():
     contatos = API_SendPulse.get_contatos()
     logging.info(contatos)
 
-    dia_semana = 2
-    # dia_semana = weekday_sun_first(date.today())
+    dia_semana = weekday_sun_first(date.today())
 
     flow = SQL.SendPulse_Flows().select(categorizacao="dia", Dia_Semana=dia_semana)
 
