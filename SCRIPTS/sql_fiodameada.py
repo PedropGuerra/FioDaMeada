@@ -162,7 +162,7 @@ class SendPulse_Flows:
             case "dia":
                 if Dia_Semana and Dia_Semana <= 7 and Dia_Semana >= 1:
                     where = f"Dia_Semana = {Dia_Semana}"
-                    select_from = f"SELECT * FROM {self.nome_tabela} WHERE {where}"
+                    select_from = f"SELECT ID_Flow_API FROM {self.nome_tabela} WHERE {where}"
                     return executar_comando_sql(select_from)
 
                 else:
@@ -186,17 +186,17 @@ class SendPulse_Flows:
 
         executar_comando_sql(sql_string)
 
-    def confirm(self, ID_FLOW_API: str = None, Nome_Flow: str = None):
+    def confirm(self, ID_Flow_API: str = None, Nome_Flow: str = None):
         if ID_Flow_API:
-            where = f"ID_Flow_API = {ID_Flow_API}"
+            where = f"ID_Flow_API = '{ID_Flow_API}'"
 
         elif Nome_Flow:
-            where = f"Nome_Flow = {Nome_Flow}"
+            where = f"Nome_Flow = '{Nome_Flow}'"
 
         select_from = (
             f"SELECT ID_Flow_API, Nome_Flow from {self.nome_tabela} WHERE {where}"
         )
-        return executar_comando_sql(select_from)
+        return executar_comando_sql(select_from)[0]
 
 
 class Preferencia_Usuarios:
@@ -492,6 +492,7 @@ class Noticias:
                 f"INSERT INTO {self.tabela_noticias_usuarios} VALUES ({values_string})"
             )
 
+            logging.info(insert_into)
             executar_comando_sql(insert_into)
 
     def select(
@@ -598,7 +599,7 @@ class Noticias:
         executar_comando_sql(sql_string)
 
     def confirm_noticia(self, Headline_Publicacao: str):
-        confirm_sql = f"SELECT ID_Noticia FROM {self.nome_tabela} WHERE Headline_Publicacao = {Headline_Publicacao}"
+        confirm_sql = f"SELECT ID_Noticia FROM {self.nome_tabela} WHERE Headline_Publicacao = '{Headline_Publicacao}'"
         return executar_comando_sql(confirm_sql)
 
 class Envios:

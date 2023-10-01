@@ -12,7 +12,7 @@ from time import strftime
 import logging
 import asyncio
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 
 
 app = Flask(__name__)
@@ -254,47 +254,61 @@ def script():
     Script_Crawl.FioDaMeada_Script_Crawling()
     return Response(status=200)
 
+def weekday_sun_first(date):
+    weekday = date.weekday()
+    
+    match weekday:
+        case 6:
+            return 1
+        
+        case _:
+            return weekday + 2
+        
 
-@app.route("/api/mensagens/enviar/<dia_semana>")
-def enviar_mensagens(dia_semana):
-    try:
-        login_database(request.args.get("API_KEY"))
-        API_SendPulse = Auth_SendPulse()
-        contatos = API_SendPulse.get_contatos()
+@app.route("/api/mensagens/enviar")
+def enviar_mensagens():
+    login_database(request.args.get("API_KEY"))
+    API_SendPulse = Auth_SendPulse()
+    contatos = API_SendPulse.get_contatos()
+    logging.info(contatos)
 
-        if dia_semana == "today":
-            dia_semana = date.today().weekday() + 1
+    dia_semana = 2
+    # dia_semana = weekday_sun_first(date.today())
 
-        flow = SQL.SendPulse_Flows().select(categorizacao="dia", Dia_Semana=dia_semana)
+    flow = SQL.SendPulse_Flows().select(categorizacao="dia", Dia_Semana=dia_semana)
 
-        if len(flow) == 0:
-            return Response("SemEnviosHoje", status=200)
+    if len(flow) == 0:
+        logging.info("SemEnviosHoje")
+        logging.info(flow)
+        return Response("SemEnviosHoje", status=200)
 
-        tamanho_thread = len(contatos) // 3
-        grupos = {
-            1: contatos[0:tamanho_thread],
-            2: contatos[tamanho_thread : tamanho_thread * 2],
-            3: contatos[tamanho_thread * 2 : tamanho_thread * 3],
-        }
+    tamanho_thread = len(contatos) // 3
+    grupos = {
+        1: contatos[0:tamanho_thread],
+        2: contatos[tamanho_thread : tamanho_thread * 2],
+        3: contatos[tamanho_thread * 2 : tamanho_thread * 3],
+    }
+    logging.info(grupos)
 
-        if len(contatos) - tamanho_thread * 3 != 0:
-            de = tamanho_thread * 3
-            ate = de + len(contatos) - tamanho_thread * 3
-            grupos[4] = contatos[de:ate]
+    if len(contatos) - tamanho_thread * 3 != 0:
+        de = tamanho_thread * 3
+        ate = de + len(contatos) - tamanho_thread * 3
+        grupos[4] = contatos[de:ate]
 
-        for grupo in grupos.values():
-            Thread(target=API_SendPulse.run_flows, args=(flow, grupo)).start()
+    for grupo in grupos.values():
+        Thread(target=API_SendPulse.run_flows, args=(flow, grupo)).start()
+        logging.info(f"Iniciando thread grupo {grupo} para self.run_flows")
 
-        SQL.Envios().insert(
-            Dia_Semana=dia_semana,
-            Data_Envio=strftime(SQL.FORMAT_DATA),
-            ID_Flow_API=flow,
-        )
+    SQL.Envios().insert(
+        Dia_Semana=dia_semana,
+        Data_Envio=strftime(SQL.FORMAT_DATA),
+        ID_Flow_API=flow[0][0],
+    )
 
-        return Response("Success", status=200)
+    logging.info(f"Insert DB Envios: Dia_Semana={dia_semana}, Data_Envio={strftime(SQL.FORMAT_DATA)}, ID_Flow_API={flow[0][0]}")
 
-    except:
-        return Response("Error", status=400)
+    return Response("Success", status=200)
+
 
 
 @app.route("/api/noticias", methods=["GET"])

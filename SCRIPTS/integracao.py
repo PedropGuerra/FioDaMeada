@@ -6,7 +6,7 @@ import logging
 from flask import abort
 import httpx
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 
 
 CLIENT_ID = os.getenv("SP_CLIENT_ID")
@@ -61,27 +61,20 @@ class Auth_SendPulse:
 
         self.retry_auth(self.get_preferencias, contact_id = contact_id)
 
-
     def get_contatos(self, continuar = 1):
-        preferencias = map(lambda pref: pref[1], Preferencia_Usuarios().select())
-        url = self.default_api_link + "/contacts/getByTag"
-        contatos = []
+        url = self.default_api_link + "/chats"
 
-        for pref in preferencias:
-            request = requests.get(
-                url, params={"tag": pref}, headers=self.define_header()
-            )
-            
-            if request.status_code == 401:
-                continuar = 0
-                break
-                
-            
-            contatos_temp = map(
-                lambda contact: contatos.append(contact["id"]), request["data"]
-            )
+        request = requests.get(
+            url, params={"bot_id": BOT_ID}, headers=self.define_header()
+        )
+        
+        if request.status_code == 401:
+            continuar = 0  
 
-        if continuar: return contatos
+        if continuar:
+            contatos = list(map(lambda chat: chat['inbox_last_message']["contact_id"], request.json()["data"]))
+            return contatos
+    
         self.retry_auth(self.get_contatos)
         
     def run_flows(self, flow_id: str, contacts: list, continuar = 1) -> None:
@@ -91,7 +84,9 @@ class Auth_SendPulse:
 
         for contact in contacts:
             params = {"contact_id": contact, "flow_id": flow_id}
+            logging.info(params)
             request = requests.post(url, params=params, headers=self.define_header())
+            logging.info(request.json())
 
             if request.status_code == 401:
                 continuar = 0
@@ -114,18 +109,20 @@ class Auth_SendPulse:
 
         if continuar:
             db_sendpulse = SendPulse_Flows()
+            request_flows = request_flows.json()
 
             for flow in request_flows["data"]:
-                confirm = db_sendpulse.confirm(ID_FLOW_API=flow["id"])
-                if confirm[1] != flow["name"]:
-                    db_sendpulse.update(ID_FLOW_API=flow["id"], Nome_Flow=flow["name"])
-
-                elif len(confirm) == 0:
+                confirm = db_sendpulse.confirm(ID_Flow_API=flow["id"])
+                
+                if len(confirm) == 0:
                     db_sendpulse.insert(
-                        ID_FLOW_API=flow["id"],
+                        ID_Flow_API=flow["id"],
                         Nome_Flow=flow["name"],
                         Data_Registro=flow["created_at"],
                     )
+                
+                elif confirm[1] != flow["name"]:
+                    db_sendpulse.update(ID_Flow_API=flow["id"], Nome_Flow=flow["name"])
             
             return
     

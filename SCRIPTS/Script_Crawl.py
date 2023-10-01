@@ -35,14 +35,10 @@ class FioDaMeada_Script_Crawling:
 
     def logica_script(self):
         info_raspagem = self.import_info_raspagem()
-        if not info_raspagem:
-            return "SemParceiros"
-        self.add_in_queue(info_raspagem)
-        self.import_noticias()
+        if info_raspagem:
+            self.add_in_queue(info_raspagem)
+            self.import_noticias()
         self.sync_formatos()
-
-        return 200
-
 
     def import_info_raspagem(self):
         return Parceiros().select(categorizacao="script")
