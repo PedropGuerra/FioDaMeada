@@ -52,6 +52,7 @@ class Auth_SendPulse:
             continuar = 0
             
         if continuar:
+            request = request.json()
             conditions = ("data" in request, len(request["data"]["tags"]) >= 1)
             request = [Preferencia_Usuarios().confirm(Nome_Preferencia=tag)[0] for tag in request["data"]["tags"]] if all(conditions) else abort(400, "Problemas com API SendPulse")
             

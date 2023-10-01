@@ -67,6 +67,7 @@ def has_no_empty_params(rule):
 
 def site_map_route():
     routes = []
+    
 
     for rule in app.url_map.iter_rules():
         # Exclude rules that require parameters and rules you can't open in a browser
