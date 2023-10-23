@@ -9,7 +9,9 @@ logging.basicConfig(level=logging.INFO)
 
 
 MAIN_DATABASE = os.getenv("DB_MAIN_DATABASE")
-HOST = os.getenv("DB_HOST")
+HOST_PUBLIC = os.getenv("DB_HOST_PUBLIC_PUBLIC")
+HOST_PRIVATE = os.getenv("DB_HOST_PUBLIC_PRIVATE")
+
 FORMAT_DATA = "%Y-%m-%d"
 
 
@@ -24,13 +26,27 @@ def sanitizar_input(input):
 def connect_db(user: str = None, password: str = None) -> None:
     """a"""
     global database, mysql_cursor
+    
+    try:
+        database = mysql.connector.connect(
+            host=HOST_PRIVATE, user=user, password=password, database=MAIN_DATABASE
+        )
 
-    database = mysql.connector.connect(
-        host=HOST, user=user, password=password, database=MAIN_DATABASE
-    )
+        mysql_cursor = database.cursor()
+        return database, mysql_cursor
 
-    mysql_cursor = database.cursor()
-    return database, mysql_cursor
+    except:
+        try:
+            database = mysql.connector.connect(
+                host=HOST_PUBLIC, user=user, password=password, database=MAIN_DATABASE
+            )
+
+            mysql_cursor = database.cursor()
+            return database, mysql_cursor
+
+        except Exception as error:
+            logging.critical(f"ERRO AO CONECTAR AO SERVIDOR MYSQL: {error}")
+
 
 
 def disconnect_db() -> None:
