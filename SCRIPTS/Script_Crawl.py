@@ -111,7 +111,7 @@ class FioDaMeada_Script_Crawling:
 
 
     def transformar_fakenews(self, headline:str, text:str):
-        escolha = random.choices(["s","n"], weights=[35,65], k=1) #35% de chance de se tornar uma FakeNews
+        escolha = random.choices(["s","n"], weights=[35,65], k=1)[0] #35% de chance de se tornar uma FakeNews
         local = None
         
 
