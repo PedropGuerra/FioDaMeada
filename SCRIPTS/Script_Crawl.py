@@ -44,6 +44,7 @@ class FioDaMeada_Script_Crawling:
         return Parceiros().select(categorizacao="script")
 
     def add_in_queue(self, info: list) -> dict:
+        import ast
         for feed in info:
             # feed = feed[i]
             ID_Parceiro = feed[0]
@@ -53,18 +54,21 @@ class FioDaMeada_Script_Crawling:
             self.queue[ID_Parceiro] = {
                 "metodo": ID_Metodo_Coleta,
                 "link": Link_Parceiro,
-                "tags_html": json_to_dict(Tags_HTML_Raspagem),
+                "tags_html": ast.literal_eval(Tags_HTML_Raspagem),
                 "noticias": {},
             }
 
     def import_noticias(self):
         from time import strftime
+        import json
+        import logging
 
         for ID_Parceiro in self.queue:
             feed = self.queue[ID_Parceiro]
             feed_link_parse = feedparser.parse(feed["link"])
-            tag_headline = feed["tags_html"]["Headline"]
-            tag_texto = feed["tags_html"]["Text"]
+            tags_html = feed["tags_html"]
+            tag_headline = tags_html["Headline"]
+            tag_texto = tags_html["Text"]
 
             for entrie in feed_link_parse.entries:
                 headline = getattr(entrie, tag_headline)
@@ -78,8 +82,7 @@ class FioDaMeada_Script_Crawling:
                     resumo = self.sanitize_text(resumo)
                     
                     headline, resumo, local, fake = self.transformar_fakenews(headline, resumo)
-
-
+                
                     Noticias().insert(
                         ID_Parceiro=ID_Parceiro,
                         Link_Publicacao=getattr(entrie, "link"),

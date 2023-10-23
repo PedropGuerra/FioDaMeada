@@ -9,8 +9,8 @@ logging.basicConfig(level=logging.INFO)
 
 
 MAIN_DATABASE = os.getenv("DB_MAIN_DATABASE")
-HOST_PUBLIC = os.getenv("DB_HOST_PUBLIC_PUBLIC")
-HOST_PRIVATE = os.getenv("DB_HOST_PUBLIC_PRIVATE")
+HOST_PUBLIC = os.getenv("DB_HOST_PUBLIC")
+HOST_PRIVATE = os.getenv("DB_HOST_PRIVATE")
 
 FORMAT_DATA = "%Y-%m-%d"
 
