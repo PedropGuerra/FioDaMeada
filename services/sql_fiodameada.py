@@ -1,9 +1,9 @@
 import mysql.connector
 import time
-import json
-import bleach
-import SCRIPTS.secrets as os
+import services.secrets as os
 import logging
+from tools.timeManipulate import FORMAT_DATA
+from tools.stringManipulate import sanitize, valuesToDatabaseString
 
 logging.basicConfig(level=logging.INFO)
 
@@ -12,21 +12,11 @@ MAIN_DATABASE = os.getenv("DB_MAIN_DATABASE")
 HOST_PUBLIC = os.getenv("DB_HOST_PUBLIC")
 HOST_PRIVATE = os.getenv("DB_HOST_PRIVATE")
 
-FORMAT_DATA = "%Y-%m-%d"
-
-
-def sanitizar_input(input):
-    if input != None:
-        return bleach.clean(input)
-
-    else:
-        return input
-
 
 def connect_db(user: str = None, password: str = None) -> None:
     """a"""
     global database, mysql_cursor
-    
+
     try:
         database = mysql.connector.connect(
             host=HOST_PRIVATE, user=user, password=password, database=MAIN_DATABASE
@@ -48,7 +38,6 @@ def connect_db(user: str = None, password: str = None) -> None:
             logging.critical(f"ERRO AO CONECTAR AO SERVIDOR MYSQL: {error}")
 
 
-
 def disconnect_db() -> None:
     """a"""
     mysql_cursor.close()
@@ -64,7 +53,7 @@ def executar_comando_sql(sql: str, values=None):
         mysql_cursor.execute(sql, values)
 
     else:
-        #logging.error(f"Não foi possível executar o comando SQL: {sql} + {values}")
+        # logging.error(f"Não foi possível executar o comando SQL: {sql} + {values}")
         return None
 
     if "SELECT" in sql or "select" in sql:
@@ -73,50 +62,6 @@ def executar_comando_sql(sql: str, values=None):
         return result
 
     database.commit()
-
-
-def transformar_valores_em_string(tipo: str, values: dict) -> str:
-    """Coloque todos os valores em uma lista ordenada por como será enviado ao DB
-    tipo = "insert"/"update"
-    """
-    value_string = ""
-
-    match tipo:
-        case "insert":
-            for count, index in enumerate(values):
-                if values[index] is None or values[index] == "":
-                    values[index] = "null"
-
-                values[index] = (
-                    f"'{values[index]}'" if values[index] != "null" else "null"
-                )
-
-                if count != len(values) - 1:
-                    values[index] = values[index] + ","
-
-                value_string += values[index]
-
-            return value_string
-
-        case "update":
-            set_string: str = ""
-
-            for index in values:
-                if values[index] is None:
-                    continue
-
-                value_string = f"{index} = '{values[index]}' "  # manter espaço
-                set_string += value_string
-
-            return set_string
-
-
-def dict_to_json(objeto: dict) -> str:
-    return json.dumps(objeto)
-
-
-def json_to_dict(objeto: str) -> dict:
-    return json.loads(objeto)
 
 
 class SendPulse_Flows:
@@ -149,7 +94,7 @@ class SendPulse_Flows:
             "Dia_Semana": Dia_Semana,
         }
 
-        values_string = transformar_valores_em_string("insert", values)
+        values_string = valuesToDatabaseString("insert", values)
         insert_into = f"INSERT INTO {self.nome_tabela} VALUES ({values_string})"
 
         executar_comando_sql(insert_into)
@@ -178,11 +123,13 @@ class SendPulse_Flows:
             case "dia":
                 if Dia_Semana and Dia_Semana <= 7 and Dia_Semana >= 1:
                     where = f"Dia_Semana = {Dia_Semana}"
-                    select_from = f"SELECT ID_Flow_API FROM {self.nome_tabela} WHERE {where}"
+                    select_from = (
+                        f"SELECT ID_Flow_API FROM {self.nome_tabela} WHERE {where}"
+                    )
                     return executar_comando_sql(select_from)
 
                 else:
-                    #logging.error(f"Dia da Semana {Dia_Semana} inválido")
+                    # logging.error(f"Dia da Semana {Dia_Semana} inválido")
                     return None
 
             case "todos":
@@ -196,7 +143,7 @@ class SendPulse_Flows:
             "Dia_Semana": Dia_Semana,
         }
 
-        set_string = transformar_valores_em_string("update", columns_dict)
+        set_string = valuesToDatabaseString("update", columns_dict)
         where = f"ID_Flow_API = {ID_Flow_API}"
         sql_string = f"UPDATE {self.nome_tabela} SET {set_string} WHERE {where}"
 
@@ -291,7 +238,7 @@ class Parceiros:
             "Status": Status,
         }
 
-        value_string = transformar_valores_em_string("insert", values)
+        value_string = valuesToDatabaseString("insert", values)
         insert_into = f"INSERT INTO Parceiros VALUES ({value_string})"
         executar_comando_sql(insert_into)
 
@@ -352,7 +299,7 @@ class Parceiros:
             "Status": Status,
         }
 
-        set_string = transformar_valores_em_string("update", columns_dict)
+        set_string = valuesToDatabaseString("update", columns_dict)
 
         sql_string = (
             f"UPDATE Parceiros SET {set_string} WHERE ID_Parceiro = {ID_Parceiro}"
@@ -458,9 +405,9 @@ class Noticias:
         values = {
             "ID_Noticia": "null",
             "ID_Parceiro": ID_Parceiro,
-            "Link_Publicacao": sanitizar_input(Link_Publicacao),
-            "Headline_Publicacao": sanitizar_input(Headline_Publicacao),
-            "Resumo_Publicacao": sanitizar_input(Resumo_Publicacao),
+            "Link_Publicacao": sanitize(Link_Publicacao, url=True),
+            "Headline_Publicacao": sanitize(Headline_Publicacao),
+            "Resumo_Publicacao": sanitize(Resumo_Publicacao),
             "Data_Publicacao_Parceiro": Data_Publicacao_Parceiro,
             "Data_Registro_DB": Data_Registro_DB,
             "Status": Status,
@@ -468,7 +415,7 @@ class Noticias:
             "Fake_Local": Fake_Local,
         }
 
-        values_string = transformar_valores_em_string("insert", values)
+        values_string = valuesToDatabaseString("insert", values)
         insert_into = f"INSERT INTO {self.nome_tabela} VALUES ({values_string})"
         try:
             executar_comando_sql(insert_into)
@@ -487,22 +434,20 @@ class Noticias:
             "ID_Noticia": ID_Noticia,
         }
 
-        values_string = transformar_valores_em_string("insert", values)
+        values_string = valuesToDatabaseString("insert", values)
         insert_into = (
             f"INSERT INTO {self.tabela_noticias_preferencia} VALUES ({values_string})"
         )
         executar_comando_sql(insert_into)
 
     def noticias_usuario(self, ID_Contato: str, IDs_Noticia) -> None:
-        
         for ID in IDs_Noticia:
-            
             values = {
                 "IDs_Noticia": IDs_Noticia,
                 "ID_Contato": ID_Contato,
             }
 
-            values_string = transformar_valores_em_string("insert", values)
+            values_string = valuesToDatabaseString("insert", values)
 
             insert_into = (
                 f"INSERT INTO {self.tabela_noticias_usuarios} VALUES ({values_string})"
@@ -560,7 +505,7 @@ class Noticias:
 
             case "qtd_noticias":
                 if qtd_noticias:
-                    #loggin.info(select_from + where_noticia + limit_random_noticia)
+                    # loggin.info(select_from + where_noticia + limit_random_noticia)
                     return executar_comando_sql(
                         select_from + where_noticia + limit_random_noticia
                     )
@@ -570,7 +515,7 @@ class Noticias:
 
             case "qtd_fakenews":
                 if qtd_fakenews:
-                    #loggin.info(select_from + where_fake + limit_random_fake)
+                    # loggin.info(select_from + where_fake + limit_random_fake)
                     return executar_comando_sql(
                         select_from + where_fake + limit_random_fake
                     )
@@ -596,19 +541,19 @@ class Noticias:
         """
 
         if int(Status) < 0 or int(Status) > 2:
-            #logging.error("Status de Notícias {Status} inválido")
+            # logging.error("Status de Notícias {Status} inválido")
             return None
 
         columns_dict = {
             "ID_Parceiro": ID_Parceiro,
-            "Link_Publicacao": sanitizar_input(Link_Publicacao),
-            "Headline_Publicacao": sanitizar_input(Headline_Publicacao),
-            "Resumo_Publicacao": sanitizar_input(Resumo_Publicacao),
+            "Link_Publicacao": sanitize(Link_Publicacao, url=True),
+            "Headline_Publicacao": sanitize(Headline_Publicacao),
+            "Resumo_Publicacao": sanitize(Resumo_Publicacao),
             "Data_Publicacao_Parceiro": Data_Publicacao_Parceiro,
             "Status": Status,
         }
 
-        set_string = transformar_valores_em_string("update", columns_dict)
+        set_string = valuesToDatabaseString("update", columns_dict)
 
         sql_string = f"UPDATE {self.nome_tabela} SET {set_string} WHERE ID_Noticia = {ID_Noticia}"
 
@@ -617,6 +562,7 @@ class Noticias:
     def confirm_noticia(self, Headline_Publicacao: str):
         confirm_sql = f"SELECT ID_Noticia FROM {self.nome_tabela} WHERE Headline_Publicacao = '{Headline_Publicacao}'"
         return executar_comando_sql(confirm_sql)
+
 
 class Envios:
     def __init__(self) -> None:
@@ -641,7 +587,7 @@ class Envios:
             "ID_Flow_API": ID_Flow_API,
         }
 
-        value_string = transformar_valores_em_string("insert", values)
+        value_string = valuesToDatabaseString("insert", values)
         insert_into = f"INSERT INTO {self.nome_tabela} VALUES ({value_string})"
         executar_comando_sql(insert_into)
 

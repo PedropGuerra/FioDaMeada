@@ -2,15 +2,17 @@ from datetime import date, timedelta
 import feedparser
 from flask import *
 from dateutil.relativedelta import relativedelta
-import SCRIPTS.sql_fiodameada as SQL
-from SCRIPTS.integracao import Auth_SendPulse
-import SCRIPTS.Script_Crawl as Script_Crawl
+import services.sql_fiodameada as SQL
+from services.integracao import Auth_SendPulse
+import services.Script_Crawl as Script_Crawl
 from threading import Thread
 import random
-import SCRIPTS.secrets as os
+import services.secrets as os
 from time import strftime
 import logging
 import asyncio
+from tools.timeManipulate import FORMAT_DATA
+from tools.jsonManipulate import dict_to_json, json_to_dict
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -67,7 +69,6 @@ def has_no_empty_params(rule):
 
 def site_map_route():
     routes = []
-    
 
     for rule in app.url_map.iter_rules():
         # Exclude rules that require parameters and rules you can't open in a browser
@@ -148,7 +149,7 @@ def cadastro():
             parceiro_id = parceiros.confirm(Nome_Parceiro=parceiro_nome)[0][0]
 
             parceiros.update(
-                ID_Parceiro=parceiro_id, Tags_HTML_Raspagem=SQL.dict_to_json(dict_tags)
+                ID_Parceiro=parceiro_id, Tags_HTML_Raspagem=dict_to_json(dict_tags)
             )
 
             redirect(url_for("cadastro"))
@@ -255,19 +256,11 @@ def script():
     Script_Crawl.FioDaMeada_Script_Crawling()
     return Response(status=200)
 
-def weekday_sun_first(date):
-    weekday = date.weekday()
-    
-    match weekday:
-        case 6:
-            return 1
-        
-        case _:
-            return weekday + 2
-        
 
 @app.route("/api/mensagens/enviar")
 def enviar_mensagens():
+    from tools.timeManipulate import weekday_sun_first
+
     login_database(request.args.get("API_KEY"))
     API_SendPulse = Auth_SendPulse()
     contatos = API_SendPulse.get_contatos()
@@ -301,14 +294,15 @@ def enviar_mensagens():
 
     SQL.Envios().insert(
         Dia_Semana=dia_semana,
-        Data_Envio=strftime(SQL.FORMAT_DATA),
+        Data_Envio=strftime(FORMAT_DATA),
         ID_Flow_API=flow[0][0],
     )
 
-    logging.info(f"Insert DB Envios: Dia_Semana={dia_semana}, Data_Envio={strftime(SQL.FORMAT_DATA)}, ID_Flow_API={flow[0][0]}")
+    logging.info(
+        f"Insert DB Envios: Dia_Semana={dia_semana}, Data_Envio={strftime(FORMAT_DATA)}, ID_Flow_API={flow[0][0]}"
+    )
 
     return Response("Success", status=200)
-
 
 
 @app.route("/api/noticias", methods=["GET"])
@@ -326,17 +320,15 @@ def get_noticias():
     qtd_rodadas = int(args("qtd_rodadas")) if args("qtd_rodadas") else None
     producao = args("producao") if args("producao") else None
 
-
     API_SendPulse = Auth_SendPulse()
     preferencias_id = API_SendPulse.get_preferencias(contact_id)
-    
+
     condicoes_dict = {
         "rodadas+noticias+fake": qtd_rodadas and qtd_fakenews and qtd_noticias,
         "only_noticias": qtd_noticias and not qtd_fakenews,
         "only_fake": qtd_fakenews and not qtd_noticias,
         "fake+rodadas": qtd_fakenews and qtd_noticias and not qtd_rodadas,
     }
-
 
     def formatacao_dict(noticia):
         return {
@@ -380,7 +372,7 @@ def get_noticias():
         if qtd_fakenews
         else None
     )
-    
+
     resp_noticias = {}
     resp_gabarito = {}
     response = {"Noticias": resp_noticias, "Gabarito": resp_gabarito}
@@ -412,7 +404,6 @@ def get_noticias():
             response["Noticias"][f"noticia{i + 1}"] = fake
 
     elif condicoes_dict["fake+rodadas"]:
-
         for i, noticia in enumerate(db_noticias + db_fakenews):
             match noticia["fake"]:
                 case 1:
@@ -429,12 +420,12 @@ def get_noticias():
         return Response("error", status=400)
 
     if not "0" in producao:
+
         async def atualizar_noticias(db_noticias, db_fakenews, contact_id):
             if db_fakenews or db_noticias:
                 ids_noticias = [noticia["id"] for noticia in db_noticias + db_fakenews]
-                SQL.Noticias().noticias_usuario(contact_id,ids_noticias)
+                SQL.Noticias().noticias_usuario(contact_id, ids_noticias)
 
         asyncio.run(atualizar_noticias(db_noticias, db_fakenews, contact_id))
-    
-        
+
     return response

@@ -1,7 +1,31 @@
 import openai
-import SCRIPTS.secrets as os
+import services.secrets as os
 
 openai.api_key = os.getenv("CGPT_KEY")
+
+
+def escolherFakeNews(headline: str, text: str) -> tuple:
+    import random
+
+    escolha = random.choices(["s", "n"], weights=[35, 65], k=1)[
+        0
+    ]  # 35% de chance de se tornar uma FakeNews
+    local = None
+
+    if escolha == "s":
+        local = random.choice(
+            ["contexto", "introducao", "conclusao"]
+        )  # escolhe apenas um local aleatoriamente
+        fake = 1
+        return (
+            criar_fakenews(headline=headline, texto=text, local=local),
+            local,
+            fake,
+        )
+
+    else:
+        fake = 0
+        return (headline, text, local, fake)
 
 
 def criar_fakenews(headline: str, texto: str, local: str):
