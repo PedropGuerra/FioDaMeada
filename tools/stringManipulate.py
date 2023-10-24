@@ -38,26 +38,46 @@ def removeBlankLines(texto):
 
 def valuesToDatabaseString(tipo: str, values: dict) -> str:
     """Coloque todos os valores em uma lista ordenada por como será enviado ao DB
-    tipo = "insert"/"update"
+    "insert" - {variavel : valor, variavel : valor} == 'valor1', 'valor2'
+    "insertMultiple" - {0:{variavel : valor, variavel : valor}} == ('valor1', 'valor2'), ('valor1', 'valor2')
+    "update" - {variavel : valor, variavel : valor} == variavel1 = 'valor1', variavel2 = 'valor2'
     """
     value_string = ""
 
     match tipo:
         case "insert":
-            for count, index in enumerate(values):
-                if values[index] is None or values[index] == "":
-                    values[index] = "null"
+            for index, key in enumerate(values):
+                value = values[key]
+                if value is None or value == "":
+                    value = "null"
 
-                values[index] = (
-                    f"'{values[index]}'" if values[index] != "null" else "null"
-                )
+                value = f"'{value}'"
 
-                if count != len(values) - 1:
-                    values[index] = values[index] + ","
+                quantidadeValues = len(values) - 1
+                if index != quantidadeValues:
+                    value += ","
 
-                value_string += values[index]
+                value_string += value
 
             return value_string
+
+        case "insertMultiple":
+            set_string: str = ""
+            for valueDict in values.values():
+                valueDict = list(
+                    map(lambda value: value if value else "null", valueDict.values())
+                )
+                for index, value in enumerate(valueDict):
+                    if index == 0:
+                        set_string += ", (" if len(set_string) != 0 else "("
+
+                    set_string += f"'{value}'"
+                    set_string += f"," if index != len(valueDict) - 1 else ""
+
+                    if index == len(valueDict) - 1:
+                        set_string += ")"
+
+            return set_string
 
         case "update":
             set_string: str = ""

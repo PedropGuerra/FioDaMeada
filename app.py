@@ -1,6 +1,14 @@
 from datetime import date, timedelta
 import feedparser
-from flask import *
+from flask import (
+    Flask,
+    Response,
+    request,
+    make_response,
+    redirect,
+    render_template,
+    url_for,
+)
 from dateutil.relativedelta import relativedelta
 import services.sql_fiodameada as SQL
 from services.integracao import Auth_SendPulse
@@ -10,9 +18,9 @@ import random
 import services.secrets as os
 from time import strftime
 import logging
-import asyncio
+import threading
 from tools.timeManipulate import FORMAT_DATA
-from tools.jsonManipulate import dict_to_json, json_to_dict
+from tools.jsonManipulate import dict_to_json
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -100,12 +108,9 @@ def login():
         return render_template("login.html", error=error)
 
 
-def login_database(API_KEY=None):
+def login_database():
     if request.cookies.get("db_login"):
         pass
-
-    elif API_KEY:
-        SQL.connect_db(user=os.getenv("DB_SP_LOGIN"), password=API_KEY)
 
     else:
         try:
@@ -252,7 +257,10 @@ def associacao_noticias():
 
 @app.route("/api/script")
 def script():
-    login_database(request.args.get("API_KEY"))
+    if request.args.get("API_KEY") != os.getenv("SP_CONNECT_KEY"):
+        return Response("Não Autorizado", status=400)
+
+    SQL.connect_db(os.getenv("DB_SP_LOGIN"), os.getenv("SP_CONNECT_KEY"))
     Script_Crawl.FioDaMeada_Script_Crawling()
     return Response(status=200)
 
@@ -261,7 +269,11 @@ def script():
 def enviar_mensagens():
     from tools.timeManipulate import weekday_sun_first
 
-    login_database(request.args.get("API_KEY"))
+    if request.args.get("API_KEY") != os.getenv("SP_CONNECT_KEY"):
+        return Response("Não Autorizado", status=400)
+
+    SQL.connect_db(os.getenv("DB_SP_LOGIN"), os.getenv("SP_CONNECT_KEY"))
+
     API_SendPulse = Auth_SendPulse()
     contatos = API_SendPulse.get_contatos()
     logging.info(contatos)
@@ -305,79 +317,25 @@ def enviar_mensagens():
     return Response("Success", status=200)
 
 
-@app.route("/api/noticias", methods=["GET"])
-def get_noticias():
-    login_database(request.args.get("API_KEY"))
-
-    args = request.args.get
-
-    contact_id = args("contact_id")
-    if not contact_id:
-        return Response("error", status=400)
-
-    qtd_noticias = int(args("qtd_noticias")) if args("qtd_noticias") else None
-    qtd_fakenews = int(args("qtd_fakenews")) if args("qtd_fakenews") else None
-    qtd_rodadas = int(args("qtd_rodadas")) if args("qtd_rodadas") else None
-    producao = args("producao") if args("producao") else None
-
-    API_SendPulse = Auth_SendPulse()
-    preferencias_id = API_SendPulse.get_preferencias(contact_id)
-
-    condicoes_dict = {
+def responseGetNoticias(
+    resp_noticias={},
+    resp_gabarito={},
+    qtd_noticias=False,
+    qtd_fakenews=False,
+    qtd_rodadas=False,
+    db_noticias: dict = None,
+    db_fakenews: dict = None,
+):
+    condicoesGetNoticias = {
         "rodadas+noticias+fake": qtd_rodadas and qtd_fakenews and qtd_noticias,
         "only_noticias": qtd_noticias and not qtd_fakenews,
         "only_fake": qtd_fakenews and not qtd_noticias,
         "fake+rodadas": qtd_fakenews and qtd_noticias and not qtd_rodadas,
     }
 
-    def formatacao_dict(noticia):
-        return {
-            "id": noticia[0],
-            "fake": noticia[5],
-            "headline": noticia[3],
-            "resumo": noticia[4],
-            "link": noticia[2],
-            "parceiro": SQL.Parceiros().confirm(ID_Parceiro=noticia[1]),
-            "fake_local": noticia[6],
-        }
-
-    db_noticias = (
-        list(
-            map(
-                formatacao_dict,
-                SQL.Noticias().select(
-                    formato="qtd_noticias",
-                    qtd_noticias=qtd_noticias,
-                    contact_id=contact_id,
-                    preferencias_id=preferencias_id,
-                ),
-            )
-        )
-        if qtd_noticias
-        else None
-    )
-
-    db_fakenews = (
-        list(
-            map(
-                formatacao_dict,
-                SQL.Noticias().select(
-                    formato="qtd_fakenews",
-                    qtd_fakenews=qtd_fakenews,
-                    contact_id=contact_id,
-                    preferencias_id=preferencias_id,
-                ),
-            )
-        )
-        if qtd_fakenews
-        else None
-    )
-
     resp_noticias = {}
     resp_gabarito = {}
-    response = {"Noticias": resp_noticias, "Gabarito": resp_gabarito}
-
-    if condicoes_dict["rodadas+noticias+fake"]:
+    if condicoesGetNoticias["rodadas+noticias+fake"]:
         for _ in range(1, qtd_rodadas + 1):
             noticias_por_rodada = min(qtd_noticias // qtd_rodadas, len(db_noticias))
             fakenews_por_rodada = min(qtd_fakenews // qtd_rodadas, len(db_fakenews))
@@ -395,15 +353,15 @@ def get_noticias():
                         "local": noticia["fake_local"],
                     }
 
-    elif condicoes_dict["only_noticias"]:
+    elif condicoesGetNoticias["only_noticias"]:
         for i, noticia in enumerate(db_noticias):
-            response["Noticias"][f"noticia{i + 1}"] = noticia
+            resp_noticias[f"noticia{i + 1}"] = noticia
 
-    elif condicoes_dict["only_fake"]:
+    elif condicoesGetNoticias["only_fake"]:
         for i, fake in enumerate(db_fakenews):
-            response["Noticias"][f"noticia{i + 1}"] = fake
+            resp_noticias[f"noticia{i + 1}"] = fake
 
-    elif condicoes_dict["fake+rodadas"]:
+    elif condicoesGetNoticias["fake+rodadas"]:
         for i, noticia in enumerate(db_noticias + db_fakenews):
             match noticia["fake"]:
                 case 1:
@@ -419,13 +377,95 @@ def get_noticias():
     else:
         return Response("error", status=400)
 
+    return {"Noticias": resp_noticias, "Gabarito": resp_gabarito}
+
+
+def formatacaoDbNoticias(select: dict):
+    noticias = SQL.Noticias().select(**select)
+    noticias = list(
+        map(
+            lambda noticia: {
+                "id": noticia[0],
+                "fake": noticia[5],
+                "headline": noticia[3],
+                "resumo": noticia[4],
+                "link": noticia[2],
+                "parceiro": SQL.Parceiros().confirm(ID_Parceiro=noticia[1]),
+                "fake_local": noticia[6],
+            },
+            noticias,
+        )
+    )
+    return noticias
+
+
+def atualizar_noticias(db_noticias, db_fakenews, contact_id):
+    if db_fakenews or db_noticias:
+        ids_noticias = [noticia["id"] for noticia in db_noticias + db_fakenews]
+        SQL.Noticias().noticias_usuario(contact_id, ids_noticias)
+
+
+@app.route("/api/noticias", methods=["GET"])
+def get_noticias():
+    args = request.args.get
+    if args("API_KEY") != os.getenv("SP_CONNECT_KEY"):
+        return Response("Não Autorizado", status=400)
+
+    SQL.connect_db(os.getenv("DB_SP_LOGIN"), os.getenv("SP_CONNECT_KEY"))
+
+    if not args("contact_id"):
+        return Response("error", status=400)
+
+    qtd_noticias = int(args("qtd_noticias")) if args("qtd_noticias") else None
+    qtd_fakenews = int(args("qtd_fakenews")) if args("qtd_fakenews") else None
+    qtd_rodadas = int(args("qtd_rodadas")) if args("qtd_rodadas") else None
+    producao = args("producao") if args("producao") else None
+    contact_id = args("contact_id")
+
+    API_SendPulse = Auth_SendPulse()
+    preferencias_id = API_SendPulse.get_preferencias(contact_id)
+
+    db_noticias = (
+        formatacaoDbNoticias(
+            {
+                "formato": "qtd_noticias",
+                "qtd_noticias": qtd_noticias,
+                "contact_id": contact_id,
+                "preferencias_id": preferencias_id,
+            }
+        )
+        if qtd_noticias
+        else None
+    )
+
+    db_fakenews = (
+        formatacaoDbNoticias(
+            {
+                "formato": "qtd_fakenews",
+                "qtd_fakenews": qtd_fakenews,
+                "contact_id": contact_id,
+                "preferencias_id": preferencias_id,
+            }
+        )
+        if qtd_fakenews
+        else None
+    )
+
     if not "0" in producao:
+        threading.Thread(
+            target=atualizar_noticias, args=(db_noticias, db_fakenews, contact_id)
+        ).start()
 
-        async def atualizar_noticias(db_noticias, db_fakenews, contact_id):
-            if db_fakenews or db_noticias:
-                ids_noticias = [noticia["id"] for noticia in db_noticias + db_fakenews]
-                SQL.Noticias().noticias_usuario(contact_id, ids_noticias)
+    return responseGetNoticias(
+        qtd_noticias=qtd_noticias,
+        qtd_fakenews=qtd_fakenews,
+        qtd_rodadas=qtd_rodadas,
+        db_noticias=db_noticias,
+        db_fakenews=db_fakenews,
+    )
 
-        asyncio.run(atualizar_noticias(db_noticias, db_fakenews, contact_id))
 
-    return response
+if __name__ == "__main__":
+    SQL.connect_db(os.getenv("DB_SP_LOGIN"), os.getenv("SP_CONNECT_KEY"))
+    print("database" in globals())
+    app.run(debug=True)

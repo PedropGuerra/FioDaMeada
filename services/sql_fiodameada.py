@@ -13,8 +13,12 @@ HOST_PUBLIC = os.getenv("DB_HOST_PUBLIC")
 HOST_PRIVATE = os.getenv("DB_HOST_PRIVATE")
 
 
-def connect_db(user: str = None, password: str = None) -> None:
+def connect_db(user: str = None, password: str = None, producao=1) -> None:
     """a"""
+
+    if all(["database" in globals(), "mysql_cursor" in globals()]):
+        return
+
     global database, mysql_cursor
 
     try:
@@ -23,6 +27,8 @@ def connect_db(user: str = None, password: str = None) -> None:
         )
 
         mysql_cursor = database.cursor()
+        globals()["database"] = database
+        globals()["mysql_cursor"] = mysql_cursor
         return database, mysql_cursor
 
     except:
@@ -32,6 +38,8 @@ def connect_db(user: str = None, password: str = None) -> None:
             )
 
             mysql_cursor = database.cursor()
+            globals()["database"] = database
+            globals()["mysql_cursor"] = mysql_cursor
             return database, mysql_cursor
 
         except Exception as error:
@@ -441,20 +449,18 @@ class Noticias:
         executar_comando_sql(insert_into)
 
     def noticias_usuario(self, ID_Contato: str, IDs_Noticia) -> None:
-        for ID in IDs_Noticia:
-            values = {
-                "IDs_Noticia": IDs_Noticia,
-                "ID_Contato": ID_Contato,
-            }
+        values = {}
+        for index, idNoticia in enumerate(IDs_Noticia):
+            values[index] = {"idNoticia": idNoticia, "idContato": ID_Contato}
 
-            values_string = valuesToDatabaseString("insert", values)
+        values_string = valuesToDatabaseString("insertMultiple", values)
 
-            insert_into = (
-                f"INSERT INTO {self.tabela_noticias_usuarios} VALUES ({values_string})"
-            )
+        insert_into = (
+            f"INSERT INTO {self.tabela_noticias_usuarios} VALUES {values_string}"
+        )
 
-            logging.info(insert_into)
-            executar_comando_sql(insert_into)
+        logging.info(insert_into)
+        executar_comando_sql(insert_into)
 
     def select(
         self,
