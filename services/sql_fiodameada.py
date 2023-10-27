@@ -361,8 +361,9 @@ class Parceiros:
                 tabelas_script = (
                     "ID_Parceiro, ID_Metodo_Coleta, Tags_HTML_Raspagem, Link_Parceiro"
                 )
-                where_script = f"Ult_Raspagem < '{time.strftime(FORMAT_DATA)}' or Ult_Raspagem is NULL"
-                select_from = f"SELECT {tabelas_script} FROM {self.nome_tabela} WHERE {where_script}"
+                # where_script = f"Ult_Raspagem < '{time.strftime(FORMAT_DATA)}' or Ult_Raspagem is NULL"
+                # select_from = f"SELECT {tabelas_script} FROM {self.nome_tabela} WHERE {where_script}"
+                select_from = f"SELECT {tabelas_script} FROM {self.nome_tabela}"
 
         return executar_comando_sql(select_from)
 
@@ -419,7 +420,7 @@ class Noticias:
         Tema_P
         """
         values = {
-            "ID_Noticia": "null",
+            "ID_Noticia": None,
             "ID_Parceiro": ID_Parceiro,
             "Link_Publicacao": sanitize(Link_Publicacao, url=True),
             "Headline_Publicacao": sanitize(Headline_Publicacao),
@@ -435,8 +436,8 @@ class Noticias:
         insert_into = f"INSERT INTO {self.nome_tabela} VALUES ({values_string})"
         try:
             executar_comando_sql(insert_into)
-        except:
-            pass
+        except Exception as e:
+            logging.error(e)
 
     def confirm_preferencia(self, ID_Pref_Usuario: str) -> list:
         """Informe o ID_Parceiro ou Nome_Parceiro para confirmar"""

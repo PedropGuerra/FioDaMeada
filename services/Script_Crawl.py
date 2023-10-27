@@ -10,6 +10,7 @@ import services.chatgpt as GPT
 import random
 from tools.timeManipulate import FORMAT_DATA
 from tools.stringManipulate import removeBlankLines, sanitize
+import logging
 
 
 class FioDaMeada_Script_Crawling:
@@ -19,13 +20,17 @@ class FioDaMeada_Script_Crawling:
 
     def logica_script(self):
         info_raspagem = self.import_info_raspagem()
+        logging.info(info_raspagem)
+
         if info_raspagem:
             self.add_in_queue(info_raspagem)
             self.import_noticias()
         self.sync_formatos()
 
     def import_info_raspagem(self):
-        return Parceiros().select(categorizacao="script")
+        info = Parceiros().select(categorizacao="script")
+        logging.info(info)
+        return info
 
     def add_in_queue(self, info: list) -> dict:
         import ast
@@ -70,6 +75,7 @@ class FioDaMeada_Script_Crawling:
                         headline, resumo
                     )
 
+                    logging.info(f"Inserting {ID_Parceiro} - {getattr(entrie, 'link')}")
                     Noticias().insert(
                         ID_Parceiro=ID_Parceiro,
                         Link_Publicacao=getattr(entrie, "link"),
