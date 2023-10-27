@@ -20,7 +20,7 @@ from time import strftime
 import logging
 import threading
 from tools.timeManipulate import FORMAT_DATA
-from tools.jsonManipulate import dict_to_json
+import json
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -154,7 +154,7 @@ def cadastro():
             parceiro_id = parceiros.confirm(Nome_Parceiro=parceiro_nome)[0][0]
 
             parceiros.update(
-                ID_Parceiro=parceiro_id, Tags_HTML_Raspagem=dict_to_json(dict_tags)
+                ID_Parceiro=parceiro_id, Tags_HTML_Raspagem=json.dumps(dict_tags)
             )
 
             redirect(url_for("cadastro"))
