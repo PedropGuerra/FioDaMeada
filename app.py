@@ -467,5 +467,4 @@ def get_noticias():
 
 if __name__ == "__main__":
     SQL.connect_db(os.getenv("DB_SP_LOGIN"), os.getenv("SP_CONNECT_KEY"))
-    print("database" in globals())
     app.run(debug=True)

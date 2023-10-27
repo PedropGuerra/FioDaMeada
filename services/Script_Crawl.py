@@ -64,7 +64,7 @@ class FioDaMeada_Script_Crawling:
 
                 else:
                     resumo = getattr(entrie, tag_texto)
-                    resumo = sanitize(resumo, removeBlankLines=True, url=True)
+                    resumo = sanitize(resumo, blankLines=True, url=True)
 
                     headline, resumo, local, fake = GPT.escolherFakeNews(
                         headline, resumo

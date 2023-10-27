@@ -2,9 +2,9 @@ import requests
 
 
 # REQUESTS TO API CONFIG
-REQ_HOST = "https://intense-elysium-398121.rj.r.appspot.com"
+# REQ_HOST = "https://intense-elysium-398121.rj.r.appspot.com"
 REQ_TEST = ["status_code"]
-# REQ_HOST = "http://127.0.0.1:5000"
+REQ_HOST = "http://127.0.0.1:5000"
 # REQ_TEST = ["status_code", "response"]
 
 

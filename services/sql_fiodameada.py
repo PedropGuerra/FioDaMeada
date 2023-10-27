@@ -603,6 +603,7 @@ class Envios:
 
         value_string = valuesToDatabaseString("insert", values)
         insert_into = f"INSERT INTO {self.nome_tabela} VALUES ({value_string})"
+        logging.info(insert_into)
         executar_comando_sql(insert_into)
 
         select_from = f"SELECT MAX(ID_Envio) FROM {self.nome_tabela}"

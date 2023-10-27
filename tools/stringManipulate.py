@@ -57,7 +57,8 @@ def valuesToDatabaseString(tipo: str, values: dict) -> str:
                 if value is None or value == "":
                     value = "null"
 
-                value = f"'{value}'" if value != "" else f"{value}"
+                if value != "null" and value != "":
+                    value = f"'{value}'"
 
                 quantidadeValues = len(values) - 1
                 if index != quantidadeValues:
