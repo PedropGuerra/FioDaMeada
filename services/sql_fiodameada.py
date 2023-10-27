@@ -61,23 +61,29 @@ def disconnect_db() -> None:
 
 
 def executar_comando_sql(sql: str, values=None):
-    """a"""
-    if values is None:
-        mysql_cursor.execute(sql)
+    try:
+        """a"""
+        if values is None:
+            mysql_cursor.execute(sql)
 
-    elif values is not None:
-        mysql_cursor.execute(sql, values)
+        elif values is not None:
+            mysql_cursor.execute(sql, values)
 
-    else:
-        # logging.error(f"Não foi possível executar o comando SQL: {sql} + {values}")
-        return None
+        else:
+            # logging.error(f"Não foi possível executar o comando SQL: {sql} + {values}")
+            return None
 
-    if "SELECT" in sql or "select" in sql:
-        result = mysql_cursor.fetchall()
+        if "SELECT" in sql or "select" in sql:
+            result = mysql_cursor.fetchall()
+            database.commit()
+            return result
+
         database.commit()
-        return result
 
-    database.commit()
+    except Exception as e:
+        logging.error(e)
+        connect_db(os.getenv("DB_SP_LOGIN"), os.getenv("SP_CONNECT_KEY"))
+        executar_comando_sql(sql, values)
 
 
 class SendPulse_Flows:
