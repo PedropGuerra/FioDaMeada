@@ -355,7 +355,7 @@ def responseGetNoticias(
 
             for i, noticia in enumerate(rodada_noticias):
                 resp_noticias[f"noticia{i + 1}"] = noticia
-                if noticia["fake"] == 1:
+                if noticia["fake"] == 1 or noticia["fake"] == "1":
                     resp_gabarito[f"rodada{i+1}"] = {
                         "id": noticia["id"],
                         "local": noticia["fake_local"],
@@ -408,9 +408,11 @@ def formatacaoDbNoticias(select: dict):
 
 
 def atualizar_noticias(db_noticias, db_fakenews, contact_id):
-    if db_fakenews is None: db_fakenews = []
-    if db_noticias is None: db_noticias = []
-    
+    if db_fakenews is None:
+        db_fakenews = []
+    if db_noticias is None:
+        db_noticias = []
+
     if db_fakenews or db_noticias:
         ids_noticias = [noticia["id"] for noticia in db_noticias + db_fakenews]
         SQL.Noticias().noticias_usuario(contact_id, ids_noticias)
