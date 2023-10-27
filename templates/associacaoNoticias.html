@@ -1,0 +1,15 @@
+<form action="/admin/associacao_noticias/render" method="post">
+    <input type="submit" value="Enviar">
+    {% for noticia in noticias.values() %}
+    <h1>DE {{noticia["data_desde"]}} até {{noticia["data_ate"]}}</h1>
+    <h3>{{noticia["Headline"]}}</h3>
+    <p>{{noticia["Resumo"]}}</p>
+    <a href={{noticia['Link']}}></a> <br>
+    Preferências <select name={{noticia['ID']}} multiple>
+        {% for id_pref, pref in preferencias %}
+        <option value={{id_pref}}>{{pref}}</option>
+        {% endfor %}
+        <option value="Inutilizar">Inutilizar</option>
+    </select>
+    {% endfor %}
+</form>

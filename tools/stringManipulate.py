@@ -16,7 +16,7 @@ def sanitize(input, url=False, blankLines=True):
         #     if not url
         #     else ""
         # )
-        regexURL = r"https?://\S+\s*"
+        regexURL = r"https?://\S+\s*" if not url else ""
         compileRegex = re.compile(regexURL + "|" + regexHTML)
         input = re.sub(compileRegex, "", input)
         return input if blankLines else removeBlankLines(input)

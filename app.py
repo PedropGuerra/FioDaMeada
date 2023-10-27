@@ -179,80 +179,88 @@ def cadastro():
     return render_template("cadastro.html", error=error)
 
 
-@app.route("/admin/associacao_noticias", methods=["POST", "GET"])
+def coletarNoticiasDisponiveis():
+    dictNoticias = {}
+    today = date.today()
+    desde = today + relativedelta(day=1)
+    ate = today + relativedelta(day=31)
+
+    noticias = SQL.Noticias().select(
+        formato="associacao", data_desde=str(desde), data_ate=str(ate)
+    )
+
+    while noticias:
+        if len(noticias) == 0:
+            continue
+        """
+        {1: {ID : ID, Link:Link, Headline:Headline, Resumo:Resumo, data_desde:desde, data_ate:ate},
+        2: {ID : ID, Link:Link, Headline:Headline, Resumo:Resumo, data_desde:desde, data_ate:ate}}
+        """
+        if isinstance(noticias, list) and len(noticias[0]) == 4:
+            noticias = list(
+                map(
+                    lambda noticia: {
+                        "ID": noticia[0],
+                        "Link": noticia[1],
+                        "Headline": noticia[2][:150],
+                        "Resumo": noticia[3][:400],
+                        "data_desde": str(desde),
+                        "data_ate": str(ate),
+                    },
+                    noticias,
+                )
+            )
+
+            for noticia in noticias:
+                proxIndex = len(dictNoticias) + 1
+                dictNoticias[proxIndex] = noticia
+
+        else:
+            logging.info(noticias)
+
+        today -= timedelta(days=30)
+        desde = today + relativedelta(day=1)
+        ate = today + relativedelta(day=31)
+
+        noticias = SQL.Noticias().select(
+            formato="associacao", data_desde=str(desde), data_ate=str(ate)
+        )
+
+    return dictNoticias
+
+
+@app.route("/admin/associacao_noticias/render", methods=["POST"])
+def associacao_noticias_render():
+    data = request.form.to_dict(flat=False)
+    for idNoticia in data:
+        if "Inutilizar" in data[idNoticia]:
+            SQL.Noticias().update(ID_Noticia=idNoticia, Status="1")
+            continue
+
+        for idPref in data[idNoticia]:
+            if idPref == "":
+                continue
+
+            else:
+                SQL.Noticias().insert_preferencia(
+                    ID_Pref_Usuario=idPref, ID_Noticia=idNoticia
+                )
+
+    return redirect(url_for("associacao_noticias"))
+
+
+@app.route("/admin/associacao_noticias")
 def associacao_noticias():
     login_database()
-    if request.method == "POST":
-        request_return = request.form.to_dict(flat=False)
-        for id_noticia in request_return:
-            if "Inutilizar" in request_return[id_noticia]:
-                SQL.Noticias().update(ID_Noticia=id_noticia, Status="1")  # inutilizada
-                continue
 
-            for id_pref in request_return[id_noticia]:
-                if id_pref == "":
-                    continue
+    preferencias = SQL.Preferencia_Usuarios().select()
+    noticias = coletarNoticiasDisponiveis()
+    logging.info(preferencias)
+    logging.info(noticias)
 
-                else:
-                    SQL.Noticias().insert_preferencia(
-                        ID_Pref_Usuario=id_pref, ID_Noticia=id_noticia
-                    )
-
-        return redirect(url_for("associacao_noticias"))
-
-    else:
-        today = date.today()
-        data_desde = today + relativedelta(day=1)
-        data_ate = today + relativedelta(day=31)
-
-        noticias_string = """<form method="POST">
-        <input type="submit" value="Enviar">"""
-        options_pref_string = """<option></option>"""
-
-        noticias = [None]
-        preferencias = SQL.Preferencia_Usuarios().select()
-
-        for i, option in enumerate(preferencias):
-            id_pref, option = option
-            options_pref_string += f"""
-            <option value="{id_pref}">{option}</option>
-            """
-            if i == len(preferencias) - 1:
-                options_pref_string += """
-                <option value="Inutilizar">Inutilizar</option>
-                """
-
-        while len(noticias) != 0:
-            noticias = SQL.Noticias().select(
-                formato="associacao",
-                data_desde=str(data_desde),
-                data_ate=str(data_ate),
-            )
-            if len(noticias) == 0:
-                continue
-
-            noticias_string += f"""
-            <h1>De {data_desde} até {data_ate}</h1>"""
-
-            for i, noticia in enumerate(noticias):
-                noticias_string += f"""
-                <h3>{noticia[2][:150]}</h3>
-                <p>{noticia[3][:400]}</p>
-                <a href="{noticia[1]}">Link Noticia</a> <br>
-                Preferências<select name="{noticia[0]}" multiple>
-                <{options_pref_string}
-                </select>
-                """
-
-            today = date.today() - timedelta(days=30)
-            data_desde = today + relativedelta(day=1)
-            data_ate = today + relativedelta(day=31)
-
-        noticias_string += """
-        </form>
-        """
-
-        return noticias_string
+    return render_template(
+        "associacaoNoticias.html", noticias=noticias, preferencias=preferencias
+    )
 
 
 @app.route("/api/script")
@@ -463,8 +471,3 @@ def get_noticias():
         db_noticias=db_noticias,
         db_fakenews=db_fakenews,
     )
-
-
-if __name__ == "__main__":
-    SQL.connect_db(os.getenv("DB_SP_LOGIN"), os.getenv("SP_CONNECT_KEY"))
-    app.run(debug=True)
