@@ -57,7 +57,7 @@ class FioDaMeada_Script_Crawling:
 
             for entrie in feed_link_parse.entries:
                 headline = getattr(entrie, tag_headline)
-                headline = sanitize(headline, removeBlankLines=True, url=True)
+                headline = sanitize(headline, blankLines=True, url=True)
 
                 if Noticias().confirm_noticia(headline):
                     continue

@@ -57,11 +57,11 @@ def valuesToDatabaseString(tipo: str, values: dict) -> str:
                 if value is None or value == "":
                     value = "null"
 
-                value = f"'{value}'"
+                value = f"'{value}'" if value != "" else f"{value}"
 
                 quantidadeValues = len(values) - 1
                 if index != quantidadeValues:
-                    value += ","
+                    value += ", "
 
                 value_string += value
 
@@ -88,11 +88,17 @@ def valuesToDatabaseString(tipo: str, values: dict) -> str:
         case "update":
             set_string: str = ""
 
-            for index in values:
-                if values[index] is None:
+            for i, index in enumerate(values):
+                if values[index] is None or values[index] == "":
                     continue
 
-                value_string = f"{index} = '{values[index]}' "  # manter espaço
+                value_string = f"{index} = '{values[index]}'"  # manter espaço
+                if i != len(values) - 1:
+                    value_string += ", "
+
+                else:
+                    value_string += " "
+
                 set_string += value_string
 
             return set_string
