@@ -595,7 +595,7 @@ class Envios:
         Status = 2 (Confirmado)
         """
         values = {
-            "ID_Envio": "null",
+            "ID_Envio": None,
             "Dia_Semana": Dia_Semana,
             "Data_Envio": Data_Envio,
             "ID_Flow_API": ID_Flow_API,
