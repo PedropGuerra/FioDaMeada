@@ -1,19 +1,25 @@
-def sanitize(input, url=False, removeBlankLines=False):
+def sanitize(input, url=False, blankLines=True):
     import bleach
     import lxml.html
     import re
 
     if input != None:
-        input = lxml.html.document_fromstring(input).text_content()
+        try:
+            input = lxml.html.document_fromstring(input).text_content()
+
+        except:
+            pass
+        # input = bleach.clean(input)
         regexHTML = r"&.*?;|\/p&.*?;|p&.*?;|<.*?>|div class=.*|/div"
-        regexURL = (
-            r"(?:(https|http)\s?:\/\/)(\s)*(www\.)?(\s)*((\w|\s)+\.)*([\w\-\s]+\/)*([\w\-]+)((\?)?[\w\s]*=\s*[\w\%&]*)*"
-            if not url
-            else ""
-        )
+        # regexURL = (
+        #     r"(?:(https|http)\s?:\/\/)(\s)*(www\.)?(\s)*((\w|\s)+\.)*([\w\-\s]+\/)*([\w\-]+)((\?)?[\w\s]*=\s*[\w\%&]*)*"
+        #     if not url
+        #     else ""
+        # )
+        regexURL = r"https?://\S+\s*"
         compileRegex = re.compile(regexURL + "|" + regexHTML)
-        input = bleach.clean(re.sub(compileRegex, "", input))
-        return input if not removeBlankLines else removeBlankLines(input)
+        input = re.sub(compileRegex, "", input)
+        return input if blankLines else removeBlankLines(input)
 
     else:
         return input
