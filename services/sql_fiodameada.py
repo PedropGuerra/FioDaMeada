@@ -23,7 +23,11 @@ def connect_db(user: str = None, password: str = None, producao=1) -> None:
 
     try:
         database = mysql.connector.connect(
-            host=HOST_PRIVATE, user=user, password=password, database=MAIN_DATABASE
+            host=HOST_PRIVATE,
+            user=user,
+            password=password,
+            database=MAIN_DATABASE,
+            ssl_disabled=True,
         )
 
         mysql_cursor = database.cursor()
@@ -34,7 +38,11 @@ def connect_db(user: str = None, password: str = None, producao=1) -> None:
     except:
         try:
             database = mysql.connector.connect(
-                host=HOST_PUBLIC, user=user, password=password, database=MAIN_DATABASE
+                host=HOST_PUBLIC,
+                user=user,
+                password=password,
+                database=MAIN_DATABASE,
+                ssl_disabled=True,
             )
 
             mysql_cursor = database.cursor()
