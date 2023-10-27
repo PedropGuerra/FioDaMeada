@@ -408,6 +408,9 @@ def formatacaoDbNoticias(select: dict):
 
 
 def atualizar_noticias(db_noticias, db_fakenews, contact_id):
+    if db_fakenews is None: db_fakenews = []
+    if db_noticias is None: db_noticias = []
+    
     if db_fakenews or db_noticias:
         ids_noticias = [noticia["id"] for noticia in db_noticias + db_fakenews]
         SQL.Noticias().noticias_usuario(contact_id, ids_noticias)
