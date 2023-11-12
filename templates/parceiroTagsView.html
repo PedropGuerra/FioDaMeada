@@ -1,0 +1,6 @@
+{% for tag in tags %}
+
+<h3>{{tag}}</h3>
+<p>{{parseFeedItem|attr(tag)}}</p>
+
+{% endfor %}

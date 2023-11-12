@@ -1,0 +1,29 @@
+<h1>{{parceiroID}}</h1>
+
+<form method="POST" action="/admin/associacao_noticias/render">
+    Título Notícia <select name="headline">
+        {% for tag in tags %}
+        <option value="{{tag}}">{{tag}}</option>
+        {% endfor %}
+    </select>
+    <br>
+    Texto Publicação <select name="Text">
+        {% for tag in tags %}
+        <option value="{{tag}}">{{tag}}</option>
+        {% endfor %}
+    </select>
+    <br>
+    Resumo Publicacao <select name="Resumo">
+        {% for tag in tags %}
+        <option value="{{tag}}">{{tag}}</option>
+        {% endfor %}
+    </select>
+    <input type="submit" value="Enviar">
+</form>
+
+{% for tag in tags %}
+
+<h3>{{tag}}</h3>
+<p>{{parseFeedItem|attr(tag)}}</p>
+
+{% endfor %}
