@@ -38,14 +38,14 @@ def connect_db(user: str = None, password: str = None) -> None:
     connect = Process(target=connection, args=["private"])
     connect.start()
 
-    sleep(3)
-    connect.kill()
+    sleep(15)
     if dbConnection is None:
+        connect.kill()
         connection(host="public")
 
     elif hasattr(dbConnection, "is_connected"):
         if not dbConnection.is_connected():
-            print("iniciando conexão publica")
+            connect.kill()
             connection(host="public")
 
 
