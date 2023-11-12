@@ -2,6 +2,9 @@ from services.sql.connection import executar_comando_sql
 from tools.stringManipulate import valuesToDatabaseString
 from tools.timeManipulate import FORMAT_DATA
 import time
+import logging
+
+logging.basicConfig(level=logging.INFO)
 
 
 class Parceiros:
@@ -114,8 +117,13 @@ class Parceiros:
         executar_comando_sql(sql_string)
 
     def update_ult_raspagem(self, ID_Parceiro: str):
-        update_set = f"UPDATE Parceiros SET Ult_Raspagem = '{time.strftime(FORMAT_DATA)}' WHERE ID_Parceiro = {ID_Parceiro}"
-        executar_comando_sql(update_set)
+        try:
+            update_set = f"UPDATE Parceiros SET Ult_Raspagem = '{time.strftime(FORMAT_DATA)}' WHERE ID_Parceiro = {ID_Parceiro}"
+            executar_comando_sql(update_set)
+
+        except Exception as e:
+            logging.error(e)
+            pass
 
     def select(
         self,

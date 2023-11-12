@@ -76,15 +76,20 @@ def dbConnectionVerify(func):
 @dbConnectionVerify
 def executar_comando_sql(sql: str, values=None):
     """a"""
-    if values is None:
-        dbCursor.execute(sql)
+    try:
+        if values is None:
+            dbCursor.execute(sql)
 
-    elif values is not None:
-        dbCursor.execute(sql, values)
+        elif values is not None:
+            dbCursor.execute(sql, values)
 
-    if "SELECT" in sql or "select" in sql:
-        result = dbCursor.fetchall()
+        if "SELECT" in sql or "select" in sql:
+            result = dbCursor.fetchall()
+            dbConnection.commit()
+            return result
+
         dbConnection.commit()
-        return result
 
-    dbConnection.commit()
+    except Exception as e:
+        logging.error(e)
+        pass
