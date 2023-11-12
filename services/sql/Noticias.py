@@ -187,6 +187,6 @@ class Noticias:
 
         executar_comando_sql(sql_string)
 
-    def confirm_noticia(self, Headline_Publicacao: str):
-        confirm_sql = f"SELECT ID_Noticia FROM {self.nome_tabela} WHERE Headline_Publicacao = '{Headline_Publicacao}'"
+    def confirm_noticia(self, link_Publicacao: str):
+        confirm_sql = f"SELECT ID_Noticia FROM {self.nome_tabela} WHERE link_Publicacao = '{link_Publicacao}'"
         return executar_comando_sql(confirm_sql)
