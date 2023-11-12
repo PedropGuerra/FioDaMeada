@@ -4,7 +4,7 @@ from services.sql.SendPulse_Flows import SendPulse_Flows
 
 import services.secrets as os
 from flask import Response, abort
-from services.integracao import Auth_SendPulse
+from services.SendPulse import SendPulse
 
 
 def apiKeyValidate(apiKey):
@@ -33,7 +33,7 @@ def apiArgsTransform(argsPassed, argsConfig, argsRequired):
 
 
 def contactPreferences(contact_id):
-    return Auth_SendPulse().get_preferencias(contact_id)
+    return SendPulse().getPreferencias(contact_id)
 
 
 def apiFormatNoticias(noticias: dict):

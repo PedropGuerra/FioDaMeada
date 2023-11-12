@@ -3,7 +3,7 @@ from flask import request, Response
 
 
 def apiPostMensagens():
-    from services.integracao import Auth_SendPulse
+    from services.SendPulse import SendPulse
     from threading import Thread
     from tools.timeManipulate import weekday_sun_first
     from datetime import date
@@ -22,12 +22,12 @@ def apiPostMensagens():
 
     if todayFlow:
         # BUILD CONTACTS GROUPS
-        contacts = Auth_SendPulse().get_contatos()
+        contacts = SendPulse().getContatos()
         groups = apiTools.threadGroups4(contacts)
 
         # SEND FLOWS TO CONTACTS
         for group in groups.values():
-            Thread(target=Auth_SendPulse().run_flows, args=(todayFlow, group)).start()
+            Thread(target=SendPulse().runFlowsByGroup, args=(todayFlow, group)).start()
 
         # REGISTER SEND IN DB
         apiTools.apiRegisterSend(weekday, todayFlow[0][0])

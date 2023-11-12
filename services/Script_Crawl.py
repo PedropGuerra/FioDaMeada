@@ -1,9 +1,7 @@
 import feedparser
-from services.sql_fiodameada import (
-    Noticias,
-    Parceiros,
-)
-from services.integracao import Auth_SendPulse
+from services.sql.Noticias import Noticias
+from services.sql.Parceiros import Parceiros
+from services.SendPulse import SendPulse
 import re
 import lxml.html
 import services.chatgpt as GPT
@@ -25,7 +23,7 @@ class FioDaMeada_Script_Crawling:
         if info_raspagem:
             self.add_in_queue(info_raspagem)
             self.import_noticias()
-        self.sync_formatos()
+        SendPulse().syncFlows()
 
     def import_info_raspagem(self):
         info = Parceiros().select(categorizacao="script")
@@ -88,7 +86,4 @@ class FioDaMeada_Script_Crawling:
                         Fake_Local=local,
                     )
             Parceiros().update_ult_raspagem(ID_Parceiro)
-
-    def sync_formatos(self):
-        API = Auth_SendPulse()
-        API.sync_formatos()
+        
