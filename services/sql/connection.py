@@ -14,7 +14,7 @@ dbCursor = None
 
 
 def connect_db(user: str = None, password: str = None) -> None:
-    from threading import Thread
+    from multiprocessing import Process
 
     global dbConnection, dbCursor
 
@@ -36,7 +36,7 @@ def connect_db(user: str = None, password: str = None) -> None:
         dbCursor = dbConnection.cursor()
 
     hostStr = "private"
-    connect = Thread(target=connection, args=(hostStr,))
+    connect = Process()(target=connection, args=(hostStr,))
     connect.start()
 
     sleep(15)
