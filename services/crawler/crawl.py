@@ -5,7 +5,7 @@ from tools.timeManipulate import FORMAT_DATA
 from services.chatgpt import escolherFakeNews
 from services.sql.Noticias import Noticias
 from services.sql.Parceiros import Parceiros
-from multiprocessing import Process
+from threading import Thread
 
 
 def crawl(info: dict):
@@ -34,9 +34,9 @@ def crawl(info: dict):
                 Fake_Local=local,
             )
 
-        Process(target=insertInDB).start()
+        Thread(target=insertInDB).start()
 
-        Process(
+        Thread(
             target=Parceiros().update_ult_raspagem,
             args=(str(parceiroID),),
         ).start()

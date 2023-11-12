@@ -4,7 +4,9 @@ from flask import request, Response
 
 def apiPostMensagens():
     from services.SendPulse import SendPulse
-    from multiprocessing import Process
+
+    # from threading import Thread
+    from threading import Thread
     from tools.timeManipulate import weekday_sun_first
     from datetime import date
 
@@ -30,7 +32,7 @@ def apiPostMensagens():
 
         # SEND FLOWS TO CONTACTS
         for group in groups.values():
-            Process(target=SendPulse().runFlowsByGroup, args=(todayFlow, group)).start()
+            Thread(target=SendPulse().runFlowsByGroup, args=(todayFlow, group)).start()
 
         # REGISTER SEND IN DB
         apiTools.apiRegisterSend(weekday, todayFlow[0][0])

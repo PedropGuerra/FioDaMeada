@@ -2,7 +2,7 @@ from services.sql.Parceiros import Parceiros
 from services.sql.Noticias import Noticias
 from services.SendPulse import SendPulse
 from services.crawler.crawl import crawl
-from multiprocessing import Process
+from threading import Thread
 import logging
 
 logging.basicConfig(level=logging.DEBUG)
@@ -33,7 +33,7 @@ def queueBuild(parceiros):
 
 
 def run():
-    Process(target=SendPulse().syncFlows)
+    Thread(target=SendPulse().syncFlows)
     parceirosToCrawl = Parceiros().select(categorizacao="script")
     queue: dict = queueBuild(parceirosToCrawl)
     logging.info(queue)

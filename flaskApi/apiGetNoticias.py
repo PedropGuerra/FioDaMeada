@@ -50,9 +50,10 @@ def apiGetNoticias():
     if args["producao"]:
         threadArgs = (args["contact_id"], dbNoticias, dbFakeNews)
 
-        from multiprocessing import Process
+        # from threading import Thread
+        from threading import Thread
 
-        Process(target=apiTools.dbAtualizarNoticiasContatos, args=threadArgs).start()
+        Thread(target=apiTools.dbAtualizarNoticiasContatos, args=threadArgs).start()
 
     # BUILD JSON RESPONSE
     return apiTools.apiResponseNoticias(
