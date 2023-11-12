@@ -11,7 +11,7 @@ def apiPostMensagens():
     # HTML Arguments Passed in URL
     argsConfig = {"API_KEY": str, "producao": int}
     argsRequired = ("API_KEY",)
-    args = apiTools.apiArgsNoticiasTransform(request.args, argsConfig, argsRequired)
+    args = apiTools.apiArgsTransform(request.args, argsConfig, argsRequired)
 
     # API KEY VALIDATION
     apiTools.apiKeyValidate(args["API_KEY"])
@@ -19,6 +19,9 @@ def apiPostMensagens():
     # GET TODAY FLOW -- OR ABORT
     weekday = weekday_sun_first(date.today())
     todayFlow = apiTools.apiTodayFlow(weekday)
+
+    if isinstance(todayFlow, Response):
+        return todayFlow
 
     if todayFlow:
         # BUILD CONTACTS GROUPS

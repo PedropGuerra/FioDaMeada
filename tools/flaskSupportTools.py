@@ -5,6 +5,9 @@ from services.sql.SendPulse_Flows import SendPulse_Flows
 import services.secrets as os
 from flask import Response, abort
 from services.SendPulse import SendPulse
+import logging
+
+logging.basicConfig(level=logging.DEBUG)
 
 
 def apiKeyValidate(apiKey):
@@ -27,16 +30,28 @@ def apiArgsTransform(argsPassed, argsConfig, argsRequired):
             argsTransformed[htmlArgument] = None
             continue
 
-        argsTransformed[htmlArgument] = argType(htmlArgument)
+        argsTransformed[htmlArgument] = argType(argsPassed[htmlArgument])
 
     return argsTransformed
 
 
 def contactPreferences(contact_id):
-    return SendPulse().getPreferencias(contact_id)
+    prefsDefault = [(1, "Política"), (2, "Saúde"), (3, "Entretenimento")]
+    try:
+        prefs = SendPulse().getPreferencias(contact_id)
+        return prefs
+
+    except Exception as e:
+        logging.error(e)
+        return prefsDefault
 
 
-def apiFormatNoticias(noticias: dict):
+def apiFormatNoticias(noticias: list):  # POR ALGUM MOTIVO, ELE ESTÁ DIVINDO UMA STRING
+    for index, noticia in enumerate(noticias.copy()):
+        if not isinstance(noticia, tuple):
+            logging.info(f"{noticia} foi retirado")
+            noticias.pop(index)
+
     noticias = list(
         map(
             lambda noticia: {
@@ -55,19 +70,37 @@ def apiFormatNoticias(noticias: dict):
 
 
 def dbSelectNoticias(select: dict):
-    return Noticias().select(**select)
+    noticias = Noticias().select(**select)
+
+    if "qtd_fakenews" in select:
+        if len(noticias) < select["qtd_fakenews"]:
+            select["valoresUnicos"] = False
+            noticias = Noticias().select(**select)
+
+    elif "qtd_noticias" in select:
+        if len(noticias) != select["qtd_noticias"]:
+            select["valoresUnicos"] = False
+            noticias = Noticias().select(**select)
+
+    return noticias
 
 
 def dbAtualizarNoticiasContatos(contact_id, dbNoticias, dbFakeNews):
-    if dbFakeNews is None:
-        dbFakeNews = []
+    try:
+        if dbFakeNews is None:
+            dbFakeNews = []
 
-    if dbNoticias is None:
-        dbNoticias = []
+        if dbNoticias is None:
+            dbNoticias = []
 
-    if dbFakeNews or dbNoticias:
-        ids_noticias = [noticia["id"] for noticia in dbNoticias + dbFakeNews]
-        Noticias().noticias_usuario(contact_id, ids_noticias)
+        if dbFakeNews or dbNoticias:
+            ids_noticias = [noticia["id"] for noticia in dbNoticias + dbFakeNews]
+
+            Noticias().noticias_usuario(contact_id, ids_noticias)
+
+    except Exception as e:
+        logging.error(e)
+        pass
 
 
 def apiResponseNoticias(
@@ -140,7 +173,7 @@ def apiTodayFlow(weekday):
     todayFlow = SendPulse_Flows().select(categorizacao="dia", Dia_Semana=weekday)
 
     if not todayFlow:
-        abort(200, Response("Sem Envios Hoje"))
+        return Response("Sem Envios Hoje", status=200)
 
     return todayFlow
 

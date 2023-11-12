@@ -32,7 +32,7 @@ def apiGetNoticias():
                 "preferencias_id": preferecias,
             }
         )
-        dbNoticias = apiTools.formatNoticias(dbNoticias)
+        dbNoticias = apiTools.apiFormatNoticias(dbNoticias)
 
     dbFakeNews = None
     if args["qtd_fakenews"]:
@@ -44,7 +44,7 @@ def apiGetNoticias():
                 "preferencias_id": preferecias,
             }
         )
-        dbFakeNews = apiTools.formatNoticias(dbFakeNews)
+        dbFakeNews = apiTools.apiFormatNoticias(dbFakeNews)
 
     # UPDATING CONTACT NEWS VIEWS
     if args["producao"]:

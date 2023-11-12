@@ -2,6 +2,7 @@ import logging
 import services.secrets as os
 import requests
 from datetime import datetime, timedelta
+import time
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -12,30 +13,34 @@ BOT_ID = os.getenv("SP_BOT_ID")
 DEFAULT_API_LINK = "https://api.sendpulse.com/telegram"
 
 
+def AuthDecorator(func):
+    def wrapper(*args, **kwargs):
+        sp = SendPulse()
+        if not sp.authenticated():
+            sp.auth()
+        result = func(*args, **kwargs)
+        return result
+
+    wrapper.__name__ = func.__name__
+    return wrapper
+
+
 class SendPulse:
     def __init__(self) -> None:
         self.default_api_link = DEFAULT_API_LINK
         self.auth()
 
-    def AuthDecorator(self, func):
-        def wrapper(*args, **kwargs):
-            if not self.authenticated():
-                self.auth()
-            result = func(*args, **kwargs)
-            return result
-
-        wrapper.__name__ = func.__name__
-        return wrapper
-
     def authenticated(self):
         authKeyExists = bool(os.getenv("SP_AUTH_KEY"))
-        authKeyExpired = (
-            datetime.strptime(os.getenv("SP_AUTH_EXPIRE"), "%Y-%m-%d %H:%M:%S.%f")
-            <= datetime.now()
-        )
 
-        if authKeyExists and not authKeyExpired:
-            return True
+        if authKeyExists:
+            authKeyExpired = (
+                datetime.strptime(os.getenv("SP_AUTH_EXPIRE"), "%Y-%m-%d %H:%M:%S.%f")
+                <= datetime.now()
+            )
+            if not authKeyExpired:
+                return True
+
         else:
             return False
 
@@ -80,9 +85,9 @@ class SendPulse:
                 pref = Preferencia_Usuarios().confirm(Nome_Preferencia=tag)[0]
                 preferences.append(pref)
 
-        logging.info(response)
+        # logging.info(response)
 
-        return response
+        return preferences
 
     @AuthDecorator
     def getContatos(self):

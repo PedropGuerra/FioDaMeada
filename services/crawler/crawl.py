@@ -15,15 +15,17 @@ def crawl(info: dict):
         headline = getattr(entrie, info["tags_html"]["Headline"])
         headline = sanitize(headline, blankLines=True, url=True)
 
-        resumo = getattr(resumo, info["tags_html"]["Text"])
+        resumo = getattr(entrie, info["tags_html"]["Text"])
         resumo = sanitize(resumo, blankLines=True, url=True)
 
         escolhaFakeNews = escolherFakeNews(headline, resumo)
         headline, resumo, local, fake = escolhaFakeNews
 
+        parceiroID = info["id"]
+
         def insertInDB():
             Noticias().insert(
-                ID_Parceiro=info["id"],
+                ID_Parceiro=parceiroID,
                 Link_Publicacao=getattr(entrie, "link"),
                 Headline_Publicacao=headline,
                 Resumo_Publicacao=resumo,
@@ -34,4 +36,7 @@ def crawl(info: dict):
 
         Process(target=insertInDB).start()
 
-        Process(target=Parceiros().update_ult_raspagem, args=(info["id"])).start()
+        Process(
+            target=Parceiros().update_ult_raspagem,
+            args=(str(parceiroID),),
+        ).start()

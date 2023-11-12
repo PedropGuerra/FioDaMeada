@@ -28,10 +28,11 @@ def test_noticias_AFN():
 
     r = requests.get(REQ_HOST + endpoint, params=param_AFN)
 
-    response: dict = r.json()
-
     if "status_code" in REQ_TEST:
         assert r.status_code == 200
+
+    if r.status_code == 200:
+        response: dict = r.json()
 
     if "response" in REQ_TEST:
         assert len(response["Noticias"]) == param_AFN["qtd_noticias"]
@@ -126,55 +127,3 @@ def test_chatgpt_CriarFakeNews():
 
         assert headline != f_headline
         assert texto != f_texto
-
-
-# from tools.stringManipulate import valuesToDatabaseString
-
-
-# def test_tools_ValuesDB():
-#     values_insert = {
-#         "Nome_Parceiro": "teste",
-#         "Link_Parcerio": "teste",
-#         "Nome_Responsavel": None,
-#         "Contato_Responsavel": None,
-#         "Licenca_Distrib": "",
-#         "ID_Metodo_Coleta": 123,
-#         "Tags_HTML_Raspagem": 55,
-#         "Ult_Raspagem": "2023-08-31",
-#         "Status": "Hello",
-#     }
-#     values_insert_resolved = (
-#         "'teste', 'teste', null, null, null, 123, 55, '2023-08-31', 'Hello'"
-#     )
-
-#     values_insertMultiple = {
-#         1: {"idNoticia": 123131, "contato": "hello"},
-#         2: {"idNoticia": 3131321, "contato": "hello"},
-#         3: {"idNoticia": 64564, "contato": "hello"},
-#     }
-#     values_insertMultiple_resolved = (
-#         "(123131, 'hello'), (3131321, 'hello'), (64564, 'hello')"
-#     )
-
-#     values_Update = {
-#         "Nome_Parceiro": "teste",
-#         "Link_Parcerio": "teste",
-#         "Nome_Responsavel": None,
-#         "Contato_Responsavel": None,
-#         "Licenca_Distrib": "",
-#         "ID_Metodo_Coleta": 123,
-#         "Tags_HTML_Raspagem": 55,
-#         "Ult_Raspagem": "2023-08-23",
-#         "Status": "Hello",
-#     }
-#     values_Update_resolved = "Nome_Parceiro = 'teste', Link_Parcerio = 'teste', Nome_Responsavel = null, Contato_Responsavel = null, Licenca_Distrib = null, ID_Metodo_Coleta = 123, Tags_HTML_Raspagem = 55, Ult_Raspagem = '2023-08-23', Status = 'Hello'"
-
-#     print(valuesToDatabaseString("insert", values_insert))
-#     print(valuesToDatabaseString("insertMultiple", values_insertMultiple))
-#     print(valuesToDatabaseString("update", values_Update))
-#     # assert valuesToDatabaseString("insert", values_insert) == values_insert_resolved
-#     # assert (
-#     #     valuesToDatabaseString("insertMultiple", values_insertMultiple)
-#     #     == values_insertMultiple_resolved
-#     # )
-#     # assert valuesToDatabaseString("update", values_Update) == values_Update_resolved

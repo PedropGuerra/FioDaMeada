@@ -98,6 +98,7 @@ class Noticias:
         contact_id: str = None,
         qtd_noticias: int = None,
         qtd_fakenews: int = None,
+        valoresUnicos: bool = True,
     ):
         """
         formato = 'associacao', 'qtd_noticias' , 'qtd_fakenews'
@@ -108,16 +109,20 @@ class Noticias:
 
         if formato != "associacao":
             col_pref = "ID_Pref_Usuario"
+
             where = f"Status = 0 AND NOT ID_Contato = '{contact_id}'"
             where += f" AND ({col_pref} = {preferencias_id[0][0]} or {col_pref} = {preferencias_id[1][0]} or {col_pref} = {preferencias_id[2][0]})"
             where_noticia = " AND Fake = 0"
             where_fake = " AND Fake = 1"
+
             limit_random_noticia = f" ORDER BY RAND() LIMIT {qtd_noticias}"
             limit_random_fake = f" ORDER BY RAND() LIMIT {qtd_fakenews}"
 
+            distinct = "DISTINCT" if valoresUnicos else ""
+
             cols_to_select = "n.ID_Noticia, n.ID_Parceiro, n.Link_Publicacao, n.Headline_Publicacao, n.Resumo_Publicacao, n.Fake, n.Fake_Local"
             select_from = (
-                f"SELECT DISTINCT {cols_to_select} from {self.nome_tabela} as n"
+                f"SELECT {distinct} {cols_to_select} from {self.nome_tabela} as n"
             )
             select_from += f" INNER JOIN {self.tabela_noticias_preferencia} as np on n.ID_Noticia = np.ID_Noticia"
             select_from += f" CROSS JOIN {self.tabela_noticias_usuarios}"
