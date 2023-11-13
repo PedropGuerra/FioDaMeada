@@ -36,7 +36,7 @@ def connect_db(user: str = None, password: str = None) -> None:
         dbCursor = dbConnection.cursor()
 
     hostStr = "private"
-    connect = Process()(target=connection, args=(hostStr,))
+    connect = Process(target=connection, args=(hostStr,))
     connect.start()
 
     sleep(15)

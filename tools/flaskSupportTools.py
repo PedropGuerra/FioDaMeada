@@ -103,70 +103,162 @@ def dbAtualizarNoticiasContatos(contact_id, dbNoticias, dbFakeNews):
         pass
 
 
+# def apiResponseNoticias(
+#     qtd_noticias=False,
+#     qtd_fakenews=False,
+#     qtd_rodadas=False,
+#     db_noticias: dict = None,
+#     db_fakenews: dict = None,
+# ):
+#     import random
+
+#     resp_gabarito = {}
+#     resp_noticias = {}
+
+#     condicoesGetNoticias = {
+#         "rodadas+noticias+fake": qtd_rodadas and qtd_fakenews and qtd_noticias,
+#         "only_noticias": qtd_noticias and not qtd_fakenews,
+#         "only_fake": qtd_fakenews and not qtd_noticias,
+#         "fake+rodadas": qtd_fakenews and qtd_noticias and not qtd_rodadas,
+#     }
+
+#     resp_noticias = {}
+#     resp_gabarito = {}
+#     if condicoesGetNoticias["rodadas+noticias+fake"]:
+#         for _ in range(1, qtd_rodadas + 1):
+#             noticias_por_rodada = min(qtd_noticias // qtd_rodadas, len(db_noticias))
+#             fakenews_por_rodada = min(qtd_fakenews // qtd_rodadas, len(db_fakenews))
+
+#             rodada_noticias = random.sample(
+#                 db_fakenews, fakenews_por_rodada
+#             ) + random.sample(db_noticias, noticias_por_rodada)
+#             random.shuffle(rodada_noticias)
+
+#             for i, noticia in enumerate(rodada_noticias):
+#                 resp_noticias[f"noticia{i + 1}"] = noticia
+#                 if noticia["fake"] == 1 or noticia["fake"] == "1":
+#                     resp_gabarito[f"rodada{i+1}"] = {
+#                         "id": noticia["id"],
+#                         "local": noticia["fake_local"],
+#                     }
+
+#     elif condicoesGetNoticias["only_noticias"]:
+#         for i, noticia in enumerate(db_noticias):
+#             resp_noticias[f"noticia{i + 1}"] = noticia
+
+#     elif condicoesGetNoticias["only_fake"]:
+#         for i, fake in enumerate(db_fakenews):
+#             resp_noticias[f"noticia{i + 1}"] = fake
+
+#     elif condicoesGetNoticias["fake+rodadas"]:
+#         for i, noticia in enumerate(db_noticias + db_fakenews):
+#             match noticia["fake"]:
+#                 case 1:
+#                     resp_noticias[f"noticia{i+1}"] = noticia
+#                     resp_gabarito[f"rodada{i + 1}"] = {
+#                         "id": noticia["id"],
+#                         "local": noticia["fake_local"],
+#                     }
+
+#                 case 0:
+#                     resp_noticias[f"noticia{i+1}"] = noticia
+
+#     else:
+#         return Response("error", status=400)
+
+#     return {"Noticias": resp_noticias, "Gabarito": resp_gabarito}
+
+
 def apiResponseNoticias(
-    qtd_noticias=False,
-    qtd_fakenews=False,
-    qtd_rodadas=False,
+    qtd_rodadas=1,
     db_noticias: dict = None,
     db_fakenews: dict = None,
 ):
-    import random
+    def roundsCreate(roundsQtd, news: dict = None, fakenews: dict = None):
+        import random
 
-    resp_gabarito = {}
-    resp_noticias = {}
+        if news:
+            newsPerRound = len(news) // qtd_rodadas
+            if newsPerRound < 1:
+                abort(400, "Erro: Noticias insuficientes para as rodadas")
 
-    condicoesGetNoticias = {
-        "rodadas+noticias+fake": qtd_rodadas and qtd_fakenews and qtd_noticias,
-        "only_noticias": qtd_noticias and not qtd_fakenews,
-        "only_fake": qtd_fakenews and not qtd_noticias,
-        "fake+rodadas": qtd_fakenews and qtd_noticias and not qtd_rodadas,
-    }
+        if not news:
+            newsPerRound = 0
 
-    resp_noticias = {}
-    resp_gabarito = {}
-    if condicoesGetNoticias["rodadas+noticias+fake"]:
-        for _ in range(1, qtd_rodadas + 1):
-            noticias_por_rodada = min(qtd_noticias // qtd_rodadas, len(db_noticias))
-            fakenews_por_rodada = min(qtd_fakenews // qtd_rodadas, len(db_fakenews))
+        if fakenews:
+            fakenewsPerRound = len(fakenews) // qtd_rodadas
+            if fakenewsPerRound < 1:
+                abort(400, "Erro: FakeNews insuficientes para as rodadas")
 
-            rodada_noticias = random.sample(
-                db_fakenews, fakenews_por_rodada
-            ) + random.sample(db_noticias, noticias_por_rodada)
-            random.shuffle(rodada_noticias)
+        if not fakenews:
+            fakenewsPerRound = 0
 
-            for i, noticia in enumerate(rodada_noticias):
-                resp_noticias[f"noticia{i + 1}"] = noticia
-                if noticia["fake"] == 1 or noticia["fake"] == "1":
-                    resp_gabarito[f"rodada{i+1}"] = {
-                        "id": noticia["id"],
-                        "local": noticia["fake_local"],
+        rounds = {}
+        for roundIndex in range(roundsQtd):
+            roundIndex += 1  # retirar index = 0
+
+            # SELECT RANDOMLY NEWS + FAKENEWS
+            if news:
+                roundNews = random.sample(news, newsPerRound)
+            else:
+                roundNews = []
+
+            if fakenews:
+                roundFakenews = random.sample(fakenews, fakenewsPerRound)
+            else:
+                roundFakenews = []
+
+            roundCombined = roundNews + roundFakenews
+            random.shuffle(roundCombined)
+
+            # CREATING NEWS INDEX (1,2,3,4,5,6,7,8,9,...)
+            rounds[roundIndex] = []
+            if roundIndex == 1:
+                itemIndex = 0
+            else:
+                itemIndex = (roundIndex - 1) * (newsPerRound + fakenewsPerRound)
+
+            # BUILDING ROUNDS DICT
+            # logging.info(roundCombined)
+            for item in roundCombined:
+                rounds[roundIndex].append({f"Noticia{itemIndex + 1}": item})
+                itemIndex += 1
+
+            # REMOVING SELECTED NEWS+FAKENEWS FROM RESPECTIVE DICT
+            if roundNews:
+                for item in roundNews:
+                    i = news.index(item)
+                    news.pop(i)
+
+            if roundFakenews:
+                for item in roundFakenews:
+                    i = fakenews.index(item)
+                    fakenews.pop(i)
+
+        return rounds
+
+    def gabaritoCreate(roundsDict: dict):
+        gabarito = {}
+        for roundIndex, rounds in roundsDict.items():
+            for newsDict in rounds:
+                for news in newsDict.values():
+                    if not news["fake"]:
+                        continue
+
+                    gabarito[roundIndex] = {
+                        "id": news["id"],
+                        "local": news["fake_local"],
                     }
 
-    elif condicoesGetNoticias["only_noticias"]:
-        for i, noticia in enumerate(db_noticias):
-            resp_noticias[f"noticia{i + 1}"] = noticia
+        return gabarito
 
-    elif condicoesGetNoticias["only_fake"]:
-        for i, fake in enumerate(db_fakenews):
-            resp_noticias[f"noticia{i + 1}"] = fake
+    if qtd_rodadas < 1:
+        qtd_rodadas = 1
 
-    elif condicoesGetNoticias["fake+rodadas"]:
-        for i, noticia in enumerate(db_noticias + db_fakenews):
-            match noticia["fake"]:
-                case 1:
-                    resp_noticias[f"noticia{i+1}"] = noticia
-                    resp_gabarito[f"rodada{i + 1}"] = {
-                        "id": noticia["id"],
-                        "local": noticia["fake_local"],
-                    }
+    rounds = roundsCreate(qtd_rodadas, db_noticias, db_fakenews)
+    gabarito = gabaritoCreate(rounds)
 
-                case 0:
-                    resp_noticias[f"noticia{i+1}"] = noticia
-
-    else:
-        return Response("error", status=400)
-
-    return {"Noticias": resp_noticias, "Gabarito": resp_gabarito}
+    return {"Gabarito": gabarito, "Noticias": rounds}
 
 
 def apiTodayFlow(weekday):

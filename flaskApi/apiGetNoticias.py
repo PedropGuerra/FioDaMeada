@@ -3,6 +3,10 @@ from flask import request
 
 
 def apiGetNoticias():
+    # GABARITO = 0 (Sem Gabarito)
+    # GABARITO = 1 (Com Gabarito Simples p/Rodada )
+    # GABARITO = 2 (Com Gabarito Aleatório p/Rodada)
+
     # HTML Arguments Passed in URL
     argsConfig = {
         "qtd_noticias": int,
@@ -11,6 +15,7 @@ def apiGetNoticias():
         "producao": int,
         "contact_id": str,
         "API_KEY": str,
+        "gabarito": int,
     }
     argsRequired = ("contact_id", "API_KEY")
     args = apiTools.apiArgsTransform(request.args, argsConfig, argsRequired)
@@ -57,8 +62,6 @@ def apiGetNoticias():
 
     # BUILD JSON RESPONSE
     return apiTools.apiResponseNoticias(
-        qtd_noticias=args["qtd_noticias"],
-        qtd_fakenews=args["qtd_fakenews"],
         qtd_rodadas=args["qtd_rodadas"],
         db_noticias=dbNoticias,
         db_fakenews=dbFakeNews,
