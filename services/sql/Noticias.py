@@ -111,7 +111,19 @@ class Noticias:
             col_pref = "ID_Pref_Usuario"
 
             where = f"Status = 0 AND NOT ID_Contato = '{contact_id}'"
-            where += f" AND ({col_pref} = {preferencias_id[0][0]} or {col_pref} = {preferencias_id[1][0]} or {col_pref} = {preferencias_id[2][0]})"
+            for i, preferencia in enumerate(preferencias_id):
+                if i == 0:
+                    wherepref = "AND ("
+                wherepref += f"{col_pref} = {preferencia[0]}"
+
+                if i == len(preferencias_id) - 1:
+                    wherepref += ")"
+                    continue
+
+                wherepref += " OR "
+
+            # where += f" AND ({col_pref} = {preferencias_id[0][0]} or {col_pref} = {preferencias_id[1][0]} or {col_pref} = {preferencias_id[2][0]})"
+            where += wherepref
             where_noticia = " AND Fake = 0"
             where_fake = " AND Fake = 1"
 
