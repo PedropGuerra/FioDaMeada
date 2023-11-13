@@ -252,8 +252,9 @@ def apiResponseNoticias(
 
         return gabarito
 
-    if qtd_rodadas < 1:
-        qtd_rodadas = 1
+    if isinstance(qtd_rodadas, int):
+        if qtd_rodadas < 1:
+            qtd_rodadas = 1
 
     rounds = roundsCreate(qtd_rodadas, db_noticias, db_fakenews)
     gabarito = gabaritoCreate(rounds)
