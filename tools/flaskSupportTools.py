@@ -252,6 +252,9 @@ def apiResponseNoticias(
 
         return gabarito
 
+    if not isinstance(qtd_rodadas, int):
+        qtd_rodadas = 1
+
     if qtd_rodadas < 1:
         qtd_rodadas = 1
 
