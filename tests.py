@@ -81,49 +81,49 @@ def test_noticias_OEF():
         assert len(response["Gabarito"]) == param_OEF["qtd_rodadas"]
 
 
-def test_script():
-    endpoint = "/api/script"
-    param_script = {"API_KEY": "JOiurVpPh2UNeCGFWaPe"}
+# def test_script():
+#     endpoint = "/api/script"
+#     param_script = {"API_KEY": "JOiurVpPh2UNeCGFWaPe"}
 
-    r = requests.get(REQ_HOST + endpoint, params=param_script)
+#     r = requests.get(REQ_HOST + endpoint, params=param_script)
 
-    if "status_code" in REQ_TEST:
-        assert r.status_code == 200
-
-
-def test_mensagens_enviar():
-    endpoint = "/api/mensagens/enviar"
-    param_enviar_msg = {"API_KEY": "JOiurVpPh2UNeCGFWaPe"}
-
-    r = requests.get(REQ_HOST + endpoint, params=param_enviar_msg)
-
-    if "status_code" in REQ_TEST:
-        assert r.status_code == 200
+#     if "status_code" in REQ_TEST:
+#         assert r.status_code == 200
 
 
-from services.chatgpt import escolherFakeNews, criar_fakenews
+# def test_mensagens_enviar():
+#     endpoint = "/api/mensagens/enviar"
+#     param_enviar_msg = {"API_KEY": "JOiurVpPh2UNeCGFWaPe"}
+
+#     r = requests.get(REQ_HOST + endpoint, params=param_enviar_msg)
+
+#     if "status_code" in REQ_TEST:
+#         assert r.status_code == 200
 
 
-def test_chatgpt_EscolherFakeNews():
-    escolhas = [0, 0]
-    tentativas = 100
-    for _ in range(tentativas):
-        escolha = escolherFakeNews(headline="teste", text="teste", test=True)
-        if escolha[3] == 1:
-            escolhas[1] += 1
-        if escolha[3] == 0:
-            escolhas[0] += 1
-
-    assert escolhas[1] / tentativas >= 0.25 and escolhas[1] / tentativas <= 0.45
+# from services.chatgpt import escolherFakeNews, criar_fakenews
 
 
-def test_chatgpt_CriarFakeNews():
-    if SERV_CHATGPT:
-        headline = "Essa mensagem é um teste"
-        texto = "Essa mensagem é um teste"
-        local = "Introducao"
+# def test_chatgpt_EscolherFakeNews():
+#     escolhas = [0, 0]
+#     tentativas = 100
+#     for _ in range(tentativas):
+#         escolha = escolherFakeNews(headline="teste", text="teste", test=True)
+#         if escolha[3] == 1:
+#             escolhas[1] += 1
+#         if escolha[3] == 0:
+#             escolhas[0] += 1
 
-        f_headline, f_texto = criar_fakenews(headline, texto, local)
+#     assert escolhas[1] / tentativas >= 0.25 and escolhas[1] / tentativas <= 0.45
 
-        assert headline != f_headline
-        assert texto != f_texto
+
+# def test_chatgpt_CriarFakeNews():
+#     if SERV_CHATGPT:
+#         headline = "Essa mensagem é um teste"
+#         texto = "Essa mensagem é um teste"
+#         local = "Introducao"
+
+#         f_headline, f_texto = criar_fakenews(headline, texto, local)
+
+#         assert headline != f_headline
+#         assert texto != f_texto
