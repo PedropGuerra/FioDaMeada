@@ -241,11 +241,12 @@ def apiResponseNoticias(
         gabarito = {}
         for roundIndex, rounds in roundsDict.items():
             for newsDict in rounds:
-                for news in newsDict.values():
+                for noticiaIndex, news in newsDict.items():
                     if not news["fake"]:
                         continue
 
                     gabarito[roundIndex] = {
+                        "noticiaID": noticiaIndex,
                         "id": news["id"],
                         "local": news["fake_local"],
                     }
